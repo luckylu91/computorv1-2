@@ -5,6 +5,9 @@ import re
 tokens = [r'\(', r'\)', r'\[', r'\]', ',', ';', r'\+', r'\-', r'\*', '/', '%', '=', r'\w+', r'\d+']
 token_pattern = '|'.join(tokens)
 
+def tokenize(line):
+    return re.findall(token_pattern, line)
+
 if __name__ == '__main__':
     toks = re.findall(token_pattern, "funB(y) = 43 * y / (4 % 2 * y)")
     print(toks)
