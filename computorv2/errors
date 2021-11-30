@@ -1,0 +1,8 @@
+the variable xxx is used but was never defined
+(beware for functions : functions's variable can never have been defined)
+
+missing matching operand
+
+division by 0
+
+matrix shape mismatch (addition, multiplication)
