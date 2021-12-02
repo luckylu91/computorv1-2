@@ -16,17 +16,9 @@ is_variable = lambda tok: (re.fullmatch(r'[a-zA-Z]+', tok) != None)
 is_number = lambda tok: (re.fullmatch(r'\d+(\.\d*)?', tok) != None)
 is_literal = lambda tok: (is_variable(tok) or is_number(tok))
 
-def literal_to_rational(tok: str):
-    tok = tok.rstrip('0').rstrip('.')
-    if tok == '':
-        return Rational(0)
-    elif '.' not in tok:
-        return Rational(int(tok))
-    else:
-        int_part, dec_part = tok.split('.')
-        pow_ten = 10 ** len(dec_part)
-        int_part, dec_part = int(int_part), int(dec_part)
-        return Rational(int_part * pow_ten + dec_part, pow_ten)
+function_pattern = r'\s*([a-zA-Z]+)\s*\(\s*([a-zA-Z]+)\s*\)'
+is_function = lambda tok: (re.match(function_pattern, tok) != None)
+function_argument_names = lambda tok: re.match(function_pattern, tok).groups()
 
 class Token:
     LITERAL = "LITERAL"
@@ -80,7 +72,7 @@ class Lexer:
         return Token(Token.EOF, None)
 
     @classmethod
-    def str_to_token(cl, s):
+    def str_to_token(cl, s: str):
         if s in punctuation_dict:
             return Token(punctuation_dict[s], s)
         elif is_literal(s):
@@ -94,7 +86,7 @@ class Lexer:
         current_token = self.tokens[self.pos]
         return self.str_to_token(current_token)
 
-    def get_token(self, i):
+    def get_token(self, i: int):
         if self.pos + i >= len(self.tokens):
             return Lexer.eof_token()
         return self.str_to_token(self.tokens[self.pos + i])

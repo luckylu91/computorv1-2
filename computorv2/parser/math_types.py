@@ -161,7 +161,10 @@ class Matrix:
 
     def __init__(self, data):
         if not Matrix.shape_is_valid(data):
-            raise Exception()
+            msg = "All lines in matrix must be of the same size\n"
+            msg += f"Matrix is:\n{Matrix.str_from_data(data)}\n"
+            msg += f"Sizes of lines {[len(line) for line in data]}"
+            raise Exception(msg)
         self.data = data
         self.h = len(data)
         self.w = len(data[0])
@@ -244,9 +247,29 @@ class Matrix:
     def __req__(self, other) -> bool:
         return self == other
 
-    def __str__(self):
-        return "\n".join("[" + ",".join(f" {l} " for l in line) + "]" for line in self.data)
+    @classmethod
+    def str_from_data(cl, data):
+        return "\n".join("[" + ",".join(f" {l} " for l in line) + "]" for line in data)
 
+    def __str__(self):
+        return Matrix.str_from_data(self.data)
+
+
+def tests_rationals():
+    r = Rational(12, 1)
+    print(r)
+    r = Rational(12, 6)
+    print(r)
+    r = Rational(1, 3)
+    print(r)
+    r = Rational(1, 3) + Rational(1, 2)
+    print(r)
+    r = Rational(1, 3) - Rational(1, 2)
+    print(r)
+    r = Rational(1, 3) * Rational(1, 2)
+    print(r)
+    r = Rational(1, 3) / Rational(1, 2)
+    print(r)
 
 
 def tests_complex():
@@ -270,18 +293,6 @@ def tests_complex():
     print(c)
 
 
-def tests_rationals():
-    r = Rational(12, 1)
-    print(r)
-    r = Rational(12, 6)
-    print(r)
-    r = Rational(1, 3)
-    print(r)
-    r = Rational(1, 3) + Rational(1, 2)
-    print(r)
-    r = Rational(1, 3) - Rational(1, 2)
-    print(r)
-    r = Rational(1, 3) * Rational(1, 2)
-    print(r)
-    r = Rational(1, 3) / Rational(1, 2)
-    print(r)
+if __name__ == '__main__':
+    tests_rationals()
+    tests_complex()
