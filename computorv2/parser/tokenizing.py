@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import re
-from math_types import Rational
 
 tokens_patterns = [
     r'\(', r'\)', r'\[', r'\]', ',', ';',
@@ -18,7 +17,7 @@ is_literal = lambda tok: (is_variable(tok) or is_number(tok))
 
 function_pattern = r'\s*([a-zA-Z]+)\s*\(\s*([a-zA-Z]+)\s*\)'
 is_function = lambda tok: (re.match(function_pattern, tok) != None)
-function_argument_names = lambda tok: re.match(function_pattern, tok).groups()
+function_argument_names = lambda tok: 're'.match(function_pattern, tok).groups()
 
 class Token:
     LITERAL = "LITERAL"
@@ -39,7 +38,7 @@ class Token:
     EQUAL = "EQUAL"
     EOF = "EOF"
 
-    def __init__(self, type: str, value):
+    def __init__(self, type: 'str', value):
         self.type = type
         self.value = value
 
@@ -63,7 +62,7 @@ punctuation_dict = {
 }
 
 class Lexer:
-    def __init__(self, tokens: list):
+    def __init__(self, tokens: 'list'):
         self.tokens = tokens
         self.pos = -1
 
@@ -72,7 +71,7 @@ class Lexer:
         return Token(Token.EOF, None)
 
     @classmethod
-    def str_to_token(cl, s: str):
+    def str_to_token(cl, s: 'str'):
         if s in punctuation_dict:
             return Token(punctuation_dict[s], s)
         elif is_literal(s):
@@ -86,7 +85,7 @@ class Lexer:
         current_token = self.tokens[self.pos]
         return self.str_to_token(current_token)
 
-    def get_token(self, i: int):
+    def get_token(self, i: 'int'):
         if self.pos + i >= len(self.tokens):
             return Lexer.eof_token()
         return self.str_to_token(self.tokens[self.pos + i])

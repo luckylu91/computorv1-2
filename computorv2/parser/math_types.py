@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 
-from typing import Union
+from typing import List, Union, Callable
 from math_utils import pgcd, ppcm, reduce_fraction
-from python_types import Scalar, Value
+
+RationalOrInt = Union['int', 'Rational']
+Scalar = Union['Rational', 'Complex']
+ScalarOrInt = Union['int', 'Rational', 'Complex']
+Value = Union['Rational', 'Complex', 'Matrix']
 
 class Rational:
-    def __init__(self, num: int, denum: int = 1):
+    def __init__(self, num: 'int', denum: 'int' = 1):
         num, denum = reduce_fraction(num, denum)
         self.num = num
         self.denum = denum
@@ -18,21 +22,21 @@ class Rational:
     def one(cl) -> 'Rational':
         return Rational(1)
 
-    def __add__(self, other):
+    def __add__(self, other) -> 'Scalar':
         if isinstance(other, Complex):
             return other + self
         new_denum = ppcm(self.denum, other.denum)
         return Rational(self.num * new_denum // self.denum + other.num * new_denum // other.denum, new_denum)
 
-    def __neg__(self):
+    def __neg__(self) -> 'Rational':
         return Rational(-self.num, self.denum)
 
-    def __sub__(self, other):
+    def __sub__(self, other: 'Scalar') -> 'Scalar':
         if isinstance(other, Complex):
             return other - self
         return self + (-other)
 
-    def __mul__(self, other):
+    def __mul__(self, other: 'Scalar') -> 'Scalar':
         if isinstance(other, Complex):
             return other * self
         return Rational(self.num * other.num, self.denum * other.denum)
@@ -40,15 +44,15 @@ class Rational:
     # def __invert__(self):
     #     return Rational(self.denum, self.num)
 
-    def __truediv__(self, other):
+    def __truediv__(self, other: 'Scalar') -> 'Scalar':
         if isinstance(other, Complex):
             return Complex(self, 0) / other
         return Rational(self.num * other.denum, self.denum * other.num)
 
-    def __mod__(self, other):
+    def __mod__(self, other: 'Rational') -> 'Rational':
         return Rational((self.num * other.denum) % (other.num * self.denum), self.denum * other.denum)
 
-    def __eq__(self, other) -> 'bool':
+    def __eq__(self, other: 'Scalar') -> 'bool':
         if isinstance(other, Rational):
             return self.num == other.num and self.denum == other.denum
         elif isinstance(other, Complex):
@@ -57,98 +61,98 @@ class Rational:
             assert(isinstance(other, int))
             return self.denum == 1 and self.num == other
 
-    def __radd__(self, other):
+    def __radd__(self, other: 'Scalar') -> 'Scalar':
         return self + other
 
-    def __rsub__(self, other):
+    def __rsub__(self, other: 'Scalar') -> 'Scalar':
         return self - other
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: 'Scalar') -> 'Scalar':
         return self * other
 
-    def __req__(self, other) -> 'bool':
+    def __req__(self, other: 'Scalar') -> 'bool':
         return self == other
 
-    def __rtruediv__(self, other):
+    def __rtruediv__(self, other: 'Scalar') -> 'Scalar':
         return self / other
 
-    def __rmod__(self, other):
+    def __rmod__(self, other: 'Rational') -> 'Rational':
         return self % other
 
-    def __str__(self):
+    def __str__(self) -> 'str':
         if self.denum == 1:
             return str(self.num)
         return f"{self.num / self.denum:.6f}".rstrip('0').rstrip('.')
 
 class Complex:
-    def __init__(self, re: Union[int, Rational], im: Union[int, Rational] = 0):
+    def __init__(self, re: 'RationalOrInt', im: 'RationalOrInt' = 0):
         self.re = re if isinstance(re, Rational) else Rational(re)
         self.im = im if isinstance(im, Rational) else Rational(im)
 
     @classmethod
-    def zero(cl):
+    def zero(cl) -> 'Complex':
         return Complex(0, 0)
 
     @classmethod
-    def one(cl):
+    def one(cl) -> 'Complex':
         return Complex(1, 0)
 
     @classmethod
-    def i(cl):
+    def i(cl) -> 'Complex':
         return Complex(0, 1)
 
     @classmethod
-    def from_any_value(cl, val):
+    def from_any_value(cl, val: 'ScalarOrInt') -> 'Complex':
         if (isinstance(val, Complex)):
             return val
         if (isinstance(val, Rational) or isinstance(val, int)):
             return Complex(val)
         raise Exception()
 
-    def __add__(self, other):
+    def __add__(self, other: 'ScalarOrInt') -> 'Complex':
         other = Complex.from_any_value(other)
         return Complex(self.re + other.re, self.im + other.im)
 
-    def __neg__(self):
+    def __neg__(self) -> 'Complex':
         return Complex(-self.re, -self.im)
 
-    def __sub__(self, other):
+    def __sub__(self, other: 'ScalarOrInt') -> 'Complex':
         other = Complex.from_any_value(other)
         return self + (-other)
 
-    def __mul__(self, other):
+    def __mul__(self, other: 'ScalarOrInt') -> 'Complex':
         other = Complex.from_any_value(other)
         return Complex(self.re * other.re - self.im * other.im,
                        self.re * other.im + self.im * other.re)
 
-    def _inverse(self):
+    def _inverse(self) -> 'Complex':
         d = self.re * self.re + self.im * self.im
         return Complex(self.re / d, -self.im / d)
 
-    def __truediv__(self, other):
+    def __truediv__(self, other: 'ScalarOrInt') -> 'Complex':
         other = Complex.from_any_value(other)
         return self * other._inverse()
 
-    def __eq__(self, other) -> 'bool':
+    def __eq__(self, other: 'ScalarOrInt') -> 'bool':
         other = Complex.from_any_value(other)
         return self.re == other.re and self.im == other.im
 
-    def __radd__(self, other):
+    def __radd__(self, other: 'ScalarOrInt') -> 'Complex':
         return self + other
 
-    def __rsub__(self, other):
+    def __rsub__(self, other: 'ScalarOrInt') -> 'Complex':
         return self - other
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: 'ScalarOrInt') -> 'Complex':
         return self * other
 
-    def __req__(self, other) -> 'bool':
+    def __req__(self, other: 'ScalarOrInt') -> 'bool':
         return self == other
 
-    def __rtruediv__(self, other):
+    def __rtruediv__(self, other: 'ScalarOrInt') -> 'Complex':
         return self._inverse() * other
 
-    def __str__(self):
+    def __str__(self) -> 'str':
         if self.im == 0:
             return str(self.re)
         if self.re == 0:
@@ -157,10 +161,10 @@ class Complex:
 
 class Matrix:
     @classmethod
-    def shape_is_valid(cl, data):
+    def shape_is_valid(cl, data: 'List[List]') -> 'bool':
         return len(set(len(line) for line in data)) == 1
 
-    def __init__(self, data, skip_verif: bool = False):
+    def __init__(self, data: 'List[List]', skip_verif: 'bool' = False):
         if not skip_verif and not Matrix.shape_is_valid(data):
             msg = "All lines in matrix must be of the same size\n"
             msg += f"Matrix is:\n{Matrix.str_from_data(data)}\n"
@@ -170,22 +174,22 @@ class Matrix:
         self.h = len(data)
         self.w = len(data[0])
 
-    def T(self):
+    def T(self) -> 'Matrix':
         dataT = [[self.data[j][i] for j in range(self.h)] for i in range(self.w)]
         return Matrix(dataT, skip_verif=True)
 
     @classmethod
-    def verify_same_shape(cl, m1, m2):
+    def verify_same_shape(cl, m1: 'Matrix', m2: 'Matrix'):
         if not (m1.h == m2.h and m1.w == m2.w):
             raise Exception()
 
     @classmethod
-    def verify_can_mult(cl, m1, m2):
+    def verify_can_mult(cl, m1: 'Matrix', m2: 'Matrix'):
         if m1.w != m2.h:
             raise Exception()
 
     @classmethod
-    def matmult(cl, m1, m2):
+    def matmult(cl, m1: 'Matrix', m2: 'Matrix') -> 'Matrix':
         Matrix.verify_can_mult(m1, m2)
         res = []
         for row1 in m1.data:
@@ -196,66 +200,66 @@ class Matrix:
         return Matrix(res, skip_verif=True)
 
     @classmethod
-    def elementwise_operation(cl, operation, m1, m2):
+    def elementwise_operation(cl, operation: 'Callable', m1: 'Matrix', m2: 'Matrix') -> 'Matrix':
         return Matrix([[operation(el1, el2) for el1, el2 in zip(row1, row2)] for row1, row2 in zip(m1.data, m2.data)])
 
     @classmethod
-    def elementwise_unary_operation(cl, operation, m1):
+    def elementwise_unary_operation(cl, operation: 'Callable', m1: 'Matrix') -> 'Matrix':
         return Matrix([[operation(el1) for el1 in row1] for row1 in m1.data])
 
-    def __add__(self, other):
+    def __add__(self, other: 'Value') -> 'Matrix':
         if isinstance(other, Matrix):
             Matrix.verify_same_shape(self, other)
             return Matrix.elementwise_operation(lambda x, y: x + y, self, other)
         else:
             return Matrix.elementwise_unary_operation(lambda x: x + other, self)
 
-    def __neg__(self):
+    def __neg__(self) -> 'Matrix':
         return Matrix.elementwise_unary_operation(lambda x: -x, self)
 
-    def __sub__(self, other):
+    def __sub__(self, other: 'Value') -> 'Matrix':
         if isinstance(other, Matrix):
             Matrix.verify_same_shape(self, other)
-            return Matrix.elementwise_operation(lambda x, y: x - y, self, other)
+            return Matrix.elementwise_operation(lambda x, y: 'x' - y, self, other)
         else:
-            return Matrix.elementwise_unary_operation(lambda x: x - other, self)
+            return Matrix.elementwise_unary_operation(lambda x: 'x' - other, self)
 
-    def __mul__(self, other):
+    def __mul__(self, other: 'Value') -> 'Matrix':
         if isinstance(other, Matrix):
             raise Exception()
         else:
-            return Matrix.elementwise_unary_operation(lambda x: x * other, self)
+            return Matrix.elementwise_unary_operation(lambda x: 'x' * other, self)
 
-    def __truediv__(self, other):
+    def __truediv__(self, other: 'Value') -> 'Matrix':
         if isinstance(other, Matrix):
             raise Exception()
         else:
-            return Matrix.elementwise_unary_operation(lambda x: x / other, self)
+            return Matrix.elementwise_unary_operation(lambda x: 'x' / other, self)
 
-    def __eq__(self, other) -> 'bool':
+    def __eq__(self, other: 'Value') -> 'bool':
         if isinstance(other, Matrix):
             Matrix.verify_same_shape(self, other)
-            return all(Matrix.elementwise_operation(lambda x, y: x == y, self, other).data)
+            return all(Matrix.elementwise_operation(lambda x, y: 'x' == y, self, other).data)
         else:
-            return Matrix.elementwise_unary_operation(lambda x: x / other, self)
+            return Matrix.elementwise_unary_operation(lambda x: 'x' / other, self)
 
-    def __radd__(self, other):
+    def __radd__(self, other: 'Value') -> 'Matrix':
         return self + other
 
-    def __rsub__(self, other):
+    def __rsub__(self, other: 'Value') -> 'Matrix':
         return self - other
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: 'Value') -> 'Matrix':
         return self * other
 
-    def __req__(self, other) -> 'bool':
+    def __req__(self, other: 'Value') -> 'bool':
         return self == other
 
     @classmethod
-    def str_from_data(cl, data):
+    def str_from_data(cl, data: 'List[List]') -> 'str':
         return "\n".join("[" + ",".join(f" {l} " for l in line) + "]" for line in data)
 
-    def __str__(self):
+    def __str__(self) -> 'str':
         return Matrix.str_from_data(self.data)
 
 

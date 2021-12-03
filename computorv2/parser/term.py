@@ -1,10 +1,10 @@
 from evaluation_utils import do_op
-from tokenizer import Token
+from tokenizing import Token
 
-# term: factor ((MATMULT | MULT | DIV | MOD) factor)*
+# term: 'factor' ((MATMULT | MULT | DIV | MOD) factor)*
 class Term:
-    def __init__(self, factor, sign: str = Token.PLUS):
-        # self.factor_first: Literal = factor
+    def __init__(self, factor, sign: 'str' = Token.PLUS):
+        # self.factor_first: 'Literal' = factor
         # self.factors: 'list[Literal]' = []
         # self.operations: 'list[Token]' = []
         self.factor_first = factor

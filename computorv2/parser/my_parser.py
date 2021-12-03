@@ -2,11 +2,12 @@
 
 from typing import Union
 
-from tokenizer import Token, Lexer, is_variable, is_number
+from tokenizing import Token, Lexer, is_variable, is_number
 from math_types import Complex, Matrix
 from literal import Literal
 from expr import Expr
 from term import Term
+from errors import UnexpectedTokenError, Error
 
 # """
 # matl   : LBRACK INTEGER (COMA INTEGER)* RBRACK
@@ -18,20 +19,20 @@ from term import Term
 # """
 
 class Parser:
-    def __init__(self, lexer: Lexer):
+    def __init__(self, lexer: 'Lexer'):
         self.lexer: Lexer = lexer
         self.current_token: Token = lexer.next_token()
         self.variables_present = set()
 
-    def eat(self, token_type: str = None) -> 'Token':
+    def eat(self, token_type: 'str' = None) -> 'Token':
         tok = self.current_token
         if token_type == None or tok.type == token_type:
             self.current_token = self.lexer.next_token()
             return tok
         else:
-            raise Exception()
+            raise UnexpectedTokenError(self.lexer, tok)
 
-    def _token_to_litteral(self, tok: Token) -> 'Literal':
+    def _token_to_litteral(self, tok: 'Token') -> 'Literal':
         if is_number(tok.value):
             type = Literal.NUMBER
         elif is_variable(tok.value):
@@ -66,7 +67,7 @@ class Parser:
     def unit_literal(self) -> 'Literal':
         return self._token_to_litteral(self.eat(Token.LITERAL))
 
-    # def signed_unit_literal(self) -> 'Literal':
+    # def signed_unit_literal(self) -> Literal:
 
 
     # Will produce a matfull for a matline or matfull
@@ -85,7 +86,7 @@ class Parser:
         self.eat(Token.RPAR)
         return Literal(Literal.FUNCTION, (fname, arg))
 
-    def eat_optional_sign(self, can_be_signed: bool) -> 'str':
+    def eat_optional_sign(self, can_be_signed: 'bool') -> 'str':
         if can_be_signed and self.current_token.type in (Token.PLUS, Token.MINUS):
             sign = self.eat().type
         else:
@@ -108,7 +109,7 @@ class Parser:
             return self.matrix()
 
     # factor: literal | LPAREN expr RPAREN
-    def factor(self, can_be_signed: bool = False) -> 'Union[Literal, Expr]':
+    def factor(self, can_be_signed: 'bool' = False) -> Union['Literal', 'Expr']:
         sign = self.eat_optional_sign(can_be_signed)
         tok = self.current_token
         if tok.type == Token.LPAR:
@@ -121,7 +122,7 @@ class Parser:
         return res
 
     # term: factor ((MATMULT | MULT | DIV | MOD) factor)*
-    def term(self, can_be_signed: bool = False) -> 'Term':
+    def term(self, can_be_signed: 'bool' = False) -> 'Term':
         t = Term(self.factor(can_be_signed=can_be_signed))
         while self.current_token.type in (Token.MULT, Token.DIV, Token.MOD, Token.MATMULT):
             op = self.eat()
@@ -138,19 +139,21 @@ class Parser:
             e.push_back(op, t)
         return e
 
+    def expect_eof(self):
+        self.eat(Token.EOF)
 
 
 if __name__ == '__main__':
-    from interpret import interpret
+    from interpreting import interpret
     context = {
         'i': Complex.i()
     }
     while True:
         line = input()
-        # try:
-        interpret(line, context)
-        context_str = {k: str(v).replace('\n', ';') for k, v in context.items()}
-        print(f"context is now : {context_str}")
-        # except Exception as e:
-        #     print(e)
+        try:
+            interpret(line, context)
+            context_str = {k: str(v).replace('\n', ';') for k, v in context.items()}
+            print(f"context is now : {context_str}")
+        except Error as e:
+            print(e)
 

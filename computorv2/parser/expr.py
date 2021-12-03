@@ -1,11 +1,11 @@
 from evaluation_utils import do_op
 from term import Term
-from tokenizer import Token
+from tokenizing import Token
 
-# expr: term ((PLUS | MINUS) term)*
+# expr: 'term' ((PLUS | MINUS) term)*
 class Expr:
-    def __init__(self, term, sign: str = Token.PLUS):
-        self.term_first: Term = term
+    def __init__(self, term, sign: 'str' = Token.PLUS):
+        self.term_first: 'Term' = term
         self.terms: 'list[Term]' = []
         self.operations: 'list[Token]' = []
         self.sign = sign
