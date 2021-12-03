@@ -159,8 +159,8 @@ class Matrix:
     def shape_is_valid(cl, data):
         return len(set(len(line) for line in data)) == 1
 
-    def __init__(self, data):
-        if not Matrix.shape_is_valid(data):
+    def __init__(self, data, skip_verif: bool = False):
+        if not skip_verif and not Matrix.shape_is_valid(data):
             msg = "All lines in matrix must be of the same size\n"
             msg += f"Matrix is:\n{Matrix.str_from_data(data)}\n"
             msg += f"Sizes of lines {[len(line) for line in data]}"
@@ -168,6 +168,10 @@ class Matrix:
         self.data = data
         self.h = len(data)
         self.w = len(data[0])
+
+    def T(self):
+        dataT = [[self.data[j][i] for j in range(self.h)] for i in range(self.w)]
+        return Matrix(dataT, skip_verif=True)
 
     @classmethod
     def verify_same_shape(cl, m1, m2):
@@ -183,13 +187,12 @@ class Matrix:
     def matmult(cl, m1, m2):
         Matrix.verify_can_mult(m1, m2)
         res = []
-        for i, row1 in enumerate(m1.data):
+        for row1 in m1.data:
             res_row = []
-            for j, el1 in enumerate(row1):
-                el2 = m2.data[j][i]
-                res_row.append(el1 * el2)
+            for col2 in m2.T().data:
+                res_row.append(sum((v1 * v2 for v1, v2 in zip(row1, col2)), start=Rational.zero()))
             res.append(res_row)
-        return res
+        return Matrix(res, skip_verif=True)
 
     @classmethod
     def elementwise_operation(cl, operation, m1, m2):

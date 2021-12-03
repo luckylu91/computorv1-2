@@ -3,14 +3,17 @@ from tokenizer import Token
 
 # term: factor ((MATMULT | MULT | DIV | MOD) factor)*
 class Term:
-    def __init__(self, factor):
+    def __init__(self, factor, sign: str = Token.PLUS):
         # self.factor_first: Literal = factor
-        # self.factors: list[Literal] = []
-        # self.operations: list[Token] = []
+        # self.factors: 'list[Literal]' = []
+        # self.operations: 'list[Token]' = []
         self.factor_first = factor
         self.factors = []
-        self.operations: list[Token] = []
+        self.operations: 'list[Token]' = []
+        self.sign = sign
 
+    def set_sign(self, sign):
+        self.sign = sign
 
     def push_back(self, op, factor):
         self.factors.append(factor)

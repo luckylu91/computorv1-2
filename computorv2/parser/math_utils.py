@@ -18,7 +18,7 @@ def pgcd(a: int, b: int) -> int:
 def ppcm(a: int, b: int) -> int:
     return a * b // pgcd(a, b)
 
-def reduce_fraction(a: int, b: int) -> tuple[int, int]:
+def reduce_fraction(a: int, b: int) -> 'tuple[int, int]':
     p = pgcd(a, b)
     return (a // p, b // p)
 

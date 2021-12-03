@@ -4,16 +4,25 @@ from tokenizer import Token
 
 # expr: term ((PLUS | MINUS) term)*
 class Expr:
-    def __init__(self, term):
+    def __init__(self, term, sign: str = Token.PLUS):
         self.term_first: Term = term
-        self.terms: list[Term] = []
-        self.operations: list[Token] = []
+        self.terms: 'list[Term]' = []
+        self.operations: 'list[Token]' = []
+        self.sign = sign
+
+    def set_sign(self, sign):
+        self.sign = sign
 
     def push_back(self, op, term):
         self.terms.append(term)
         self.operations.append(op)
 
     def evaluate(self, context):
+        # distibutivity of sign over expression
+        self.term_first.set_sign(self.sign)
+        for t in self.terms:
+            t.set_sign(self.sign)
+
         res = self.term_first.evaluate(context)
         ts = [t.evaluate(context) for t in self.terms]
         for op, t in zip(self.operations, ts):

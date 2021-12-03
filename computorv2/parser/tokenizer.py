@@ -5,7 +5,7 @@ from math_types import Rational
 
 tokens_patterns = [
     r'\(', r'\)', r'\[', r'\]', ',', ';',
-    r'\+', r'\-', r'\*', r'\*\*', '/', '%', '=',
+    r'\+', r'\-', r'\*{1,2}', '/', '%', '=',
     r'[a-zA-Z]+', r'\d+(?:\.\d*)?'
 ]
 token_pattern = '|'.join(tokens_patterns)
@@ -95,7 +95,8 @@ class Lexer:
 if __name__ == '__main__':
     lines = [
         "funB(y) = 43 * y / (4.1 % 2. * y)",
-        "matA = [[1,2];[3,2];[3,4]]"
+        "matA = [[1,2];[3,2];[3,4]]",
+        "a ** b"
     ]
     for line in lines:
         print(f"--- BEGIN LINE {line} ---")

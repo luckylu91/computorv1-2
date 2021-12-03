@@ -41,8 +41,8 @@ class Parser:
             type = Literal.MATRIX
         return Literal(type, tok.value)
 
-    "matline: LBRACK unit_literal (COMA unit_literal)* RBRACK"
-    def matline(self) -> list[Literal]:
+    # matline: LBRACK unit_literal (COMA unit_literal)* RBRACK
+    def matline(self) -> 'list[Literal]':
         values = []
         self.eat(Token.LBRACK)
         values.append(self._token_to_litteral(self.eat(Token.LITERAL)))
@@ -52,9 +52,8 @@ class Parser:
         self.eat(Token.RBRACK)
         return values
 
-    "matfull: LBRACK matl (SEMICOL matl)* RBRACK"
-    def matfull(self) -> list[list[Literal]]:
-        print("matfull")
+    # matfull: LBRACK matl (SEMICOL matl)* RBRACK
+    def matfull(self) -> 'list[list[Literal]]':
         lines = []
         self.eat(Token.LBRACK)
         lines.append(self.matline())
@@ -66,6 +65,9 @@ class Parser:
 
     def unit_literal(self) -> Literal:
         return self._token_to_litteral(self.eat(Token.LITERAL))
+
+    # def signed_unit_literal(self) -> Literal:
+
 
     # Will produce a matfull for a matline or matfull
     def matrix(self) -> Literal:
@@ -83,7 +85,15 @@ class Parser:
         self.eat(Token.RPAR)
         return Literal(Literal.FUNCTION, (fname, arg))
 
-    # literal: unit_literal | matfull | function
+    def eat_optional_sign(self, can_be_signed: bool) -> str:
+        if can_be_signed and self.current_token.type in (Token.PLUS, Token.MINUS):
+            sign = self.eat().type
+        else:
+            sign = Token.PLUS
+        return sign
+
+    # (can be signed)    literal: (PLUS | MINUS)? (unit_literal | matfull | function)
+    # (cannot be signed) literal: unit_literal | matfull | function
     def literal(self) -> Literal:
         tok = self.current_token
         if tok.type == Token.LITERAL:
@@ -97,32 +107,34 @@ class Parser:
         else:
             return self.matrix()
 
-    "factor: literal | LPAREN expr RPAREN"
-    def factor(self) -> Union[Literal, Expr]:
+    # factor: literal | LPAREN expr RPAREN
+    def factor(self, can_be_signed: bool = False) -> Union[Literal, Expr]:
+        sign = self.eat_optional_sign(can_be_signed)
         tok = self.current_token
         if tok.type == Token.LPAR:
             self.eat()
             res = self.expr()
             self.eat(Token.RPAR)
-            return res
         else:
-            return self.literal()
+            res = self.literal()
+        res.set_sign(sign)
+        return res
 
     # term: factor ((MATMULT | MULT | DIV | MOD) factor)*
-    def term(self) -> Term:
-        t = Term(self.factor())
+    def term(self, can_be_signed: bool = False) -> Term:
+        t = Term(self.factor(can_be_signed=can_be_signed))
         while self.current_token.type in (Token.MULT, Token.DIV, Token.MOD, Token.MATMULT):
             op = self.eat()
-            f = self.factor()
+            f = self.factor(can_be_signed=False)
             t.push_back(op, f)
         return t
 
     # expr: term ((PLUS | MINUS) term)*
     def expr(self) -> Expr:
-        e = Expr(self.term())
+        e = Expr(self.term(can_be_signed=True))
         while self.current_token.type in (Token.PLUS, Token.MINUS):
             op = self.eat()
-            t = self.term()
+            t = self.term(can_be_signed=False)
             e.push_back(op, t)
         return e
 
@@ -135,10 +147,10 @@ if __name__ == '__main__':
     }
     while True:
         line = input()
-        try:
-            interpret(line, context)
-            context_str = {k: str(v).replace('\n', ';') for k, v in context.items()}
-            print(f"context is now : {context_str}")
-        except Exception as e:
-            print(e)
+        # try:
+        interpret(line, context)
+        context_str = {k: str(v).replace('\n', ';') for k, v in context.items()}
+        print(f"context is now : {context_str}")
+        # except Exception as e:
+        #     print(e)
 
