@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-def pgcd(a: int, b: int) -> int:
+def pgcd(a: int, b: int) -> 'int':
     if a == 0 and b == 0:
         raise Exception()
     a, b = max(a, b), min(a, b)
@@ -15,7 +15,7 @@ def pgcd(a: int, b: int) -> int:
         rem = a % b
     return b
 
-def ppcm(a: int, b: int) -> int:
+def ppcm(a: int, b: int) -> 'int':
     return a * b // pgcd(a, b)
 
 def reduce_fraction(a: int, b: int) -> 'tuple[int, int]':

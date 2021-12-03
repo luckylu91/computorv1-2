@@ -23,7 +23,7 @@ class Parser:
         self.current_token: Token = lexer.next_token()
         self.variables_present = set()
 
-    def eat(self, token_type: str = None) -> Token:
+    def eat(self, token_type: str = None) -> 'Token':
         tok = self.current_token
         if token_type == None or tok.type == token_type:
             self.current_token = self.lexer.next_token()
@@ -31,7 +31,7 @@ class Parser:
         else:
             raise Exception()
 
-    def _token_to_litteral(self, tok: Token) -> Literal:
+    def _token_to_litteral(self, tok: Token) -> 'Literal':
         if is_number(tok.value):
             type = Literal.NUMBER
         elif is_variable(tok.value):
@@ -63,14 +63,14 @@ class Parser:
         self.eat(Token.RBRACK)
         return lines
 
-    def unit_literal(self) -> Literal:
+    def unit_literal(self) -> 'Literal':
         return self._token_to_litteral(self.eat(Token.LITERAL))
 
-    # def signed_unit_literal(self) -> Literal:
+    # def signed_unit_literal(self) -> 'Literal':
 
 
     # Will produce a matfull for a matline or matfull
-    def matrix(self) -> Literal:
+    def matrix(self) -> 'Literal':
         tok1 = self.lexer.get_token(1)
         if tok1.type != Token.LBRACK:
             m = Matrix([self.matline()])
@@ -78,14 +78,14 @@ class Parser:
             m = Matrix(self.matfull())
         return Literal(Literal.MATRIX, m)
 
-    def function(self) -> Literal:
+    def function(self) -> 'Literal':
         fname = self.eat(Token.LITERAL).value
         self.eat(Token.LPAR)
         arg = self._token_to_litteral(self.eat(Token.LITERAL))
         self.eat(Token.RPAR)
         return Literal(Literal.FUNCTION, (fname, arg))
 
-    def eat_optional_sign(self, can_be_signed: bool) -> str:
+    def eat_optional_sign(self, can_be_signed: bool) -> 'str':
         if can_be_signed and self.current_token.type in (Token.PLUS, Token.MINUS):
             sign = self.eat().type
         else:
@@ -94,7 +94,7 @@ class Parser:
 
     # (can be signed)    literal: (PLUS | MINUS)? (unit_literal | matfull | function)
     # (cannot be signed) literal: unit_literal | matfull | function
-    def literal(self) -> Literal:
+    def literal(self) -> 'Literal':
         tok = self.current_token
         if tok.type == Token.LITERAL:
             if self.lexer.get_token(1).type == Token.LPAR:
@@ -108,7 +108,7 @@ class Parser:
             return self.matrix()
 
     # factor: literal | LPAREN expr RPAREN
-    def factor(self, can_be_signed: bool = False) -> Union[Literal, Expr]:
+    def factor(self, can_be_signed: bool = False) -> 'Union[Literal, Expr]':
         sign = self.eat_optional_sign(can_be_signed)
         tok = self.current_token
         if tok.type == Token.LPAR:
@@ -121,7 +121,7 @@ class Parser:
         return res
 
     # term: factor ((MATMULT | MULT | DIV | MOD) factor)*
-    def term(self, can_be_signed: bool = False) -> Term:
+    def term(self, can_be_signed: bool = False) -> 'Term':
         t = Term(self.factor(can_be_signed=can_be_signed))
         while self.current_token.type in (Token.MULT, Token.DIV, Token.MOD, Token.MATMULT):
             op = self.eat()
@@ -130,7 +130,7 @@ class Parser:
         return t
 
     # expr: term ((PLUS | MINUS) term)*
-    def expr(self) -> Expr:
+    def expr(self) -> 'Expr':
         e = Expr(self.term(can_be_signed=True))
         while self.current_token.type in (Token.PLUS, Token.MINUS):
             op = self.eat()

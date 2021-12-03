@@ -4,13 +4,13 @@ from tokenizer import Lexer, is_variable, is_number, tokenize, \
 from expr import Expr
 from my_parser import Parser
 
-def expression_from_str(line: str) -> Expr:
+def expression_from_str(line: str) -> 'Expr':
     toks = tokenize(line)
     lex = Lexer(toks)
     pars = Parser(lex)
     return pars.expr()
 
-def evaluate(line: str, context: dict) -> Value:
+def evaluate(line: str, context: dict) -> 'Value':
     expr = expression_from_str(line)
     # print(f"Variables present in expression :\n {{{', '.join(pars.variables_present)}}}")
     return expr.evaluate(context)

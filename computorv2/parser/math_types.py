@@ -2,6 +2,7 @@
 
 from typing import Union
 from math_utils import pgcd, ppcm, reduce_fraction
+from python_types import Scalar, Value
 
 class Rational:
     def __init__(self, num: int, denum: int = 1):
@@ -10,11 +11,11 @@ class Rational:
         self.denum = denum
 
     @classmethod
-    def zero(cl):
+    def zero(cl) -> 'Rational':
         return Rational(0)
 
     @classmethod
-    def one(cl):
+    def one(cl) -> 'Rational':
         return Rational(1)
 
     def __add__(self, other):
@@ -47,7 +48,7 @@ class Rational:
     def __mod__(self, other):
         return Rational((self.num * other.denum) % (other.num * self.denum), self.denum * other.denum)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other) -> 'bool':
         if isinstance(other, Rational):
             return self.num == other.num and self.denum == other.denum
         elif isinstance(other, Complex):
@@ -65,7 +66,7 @@ class Rational:
     def __rmul__(self, other):
         return self * other
 
-    def __req__(self, other) -> bool:
+    def __req__(self, other) -> 'bool':
         return self == other
 
     def __rtruediv__(self, other):
@@ -128,7 +129,7 @@ class Complex:
         other = Complex.from_any_value(other)
         return self * other._inverse()
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other) -> 'bool':
         other = Complex.from_any_value(other)
         return self.re == other.re and self.im == other.im
 
@@ -141,7 +142,7 @@ class Complex:
     def __rmul__(self, other):
         return self * other
 
-    def __req__(self, other) -> bool:
+    def __req__(self, other) -> 'bool':
         return self == other
 
     def __rtruediv__(self, other):
@@ -231,7 +232,7 @@ class Matrix:
         else:
             return Matrix.elementwise_unary_operation(lambda x: x / other, self)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other) -> 'bool':
         if isinstance(other, Matrix):
             Matrix.verify_same_shape(self, other)
             return all(Matrix.elementwise_operation(lambda x, y: x == y, self, other).data)
@@ -247,7 +248,7 @@ class Matrix:
     def __rmul__(self, other):
         return self * other
 
-    def __req__(self, other) -> bool:
+    def __req__(self, other) -> 'bool':
         return self == other
 
     @classmethod

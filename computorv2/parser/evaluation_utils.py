@@ -22,7 +22,7 @@ def do_op(op: Token, l1, l2):
     elif op.type == Token.MATMULT:
         return matmult(l1, l2)
 
-def rational_from_str(tok: str) -> Rational:
+def rational_from_str(tok: str) -> 'Rational':
     tok = tok.rstrip('0').rstrip('.')
     if tok == '':
         return Rational(0)

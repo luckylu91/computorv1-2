@@ -27,7 +27,7 @@ class Literal:
         self.sign = sign
 
     @classmethod
-    def _substitute_function_arg(cl, arg: Literal, context: Context) -> Value:
+    def _substitute_function_arg(cl, arg: Literal, context: Context) -> 'Value':
         if arg.type in (Literal.NUMBER, Literal.MATRIX, Literal.VARIABLE):
             return arg.evaluate(context)
         raise Exception()
@@ -35,7 +35,7 @@ class Literal:
     def _apply_sign(self, val):
         return val if self.sign == Token.PLUS else -val
 
-    def evaluate(self, context: Context) -> Value:
+    def evaluate(self, context: Context) -> 'Value':
         if self.type == Literal.NUMBER:
             res = rational_from_str(self.value)
         elif self.type == Literal.VARIABLE:
@@ -52,7 +52,7 @@ class Literal:
             res = Matrix.elementwise_unary_operation(lambda x: x.evaluate(context), self.value)
         return self._apply_sign(res)
 
-    def __str__(self) -> str:
+    def __str__(self) -> 'str':
         if self.type == Literal.MATRIX:
             s = str(self.value)
         else:
