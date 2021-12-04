@@ -1,16 +1,16 @@
+from typing import List
 from evaluation_utils import do_op
+from literal import Literal
 from tokenizing import Token
 
 # term: 'factor' ((MATMULT | MULT | DIV | MOD) factor)*
 class Term:
-    def __init__(self, factor, sign: 'str' = Token.PLUS):
-        # self.factor_first: 'Literal' = factor
-        # self.factors: 'list[Literal]' = []
-        # self.operations: 'list[Token]' = []
-        self.factor_first = factor
-        self.factors = []
-        self.operations: 'list[Token]' = []
-        self.sign = sign
+
+    def __init__(self, factor: 'Literal', sign: 'str' = Token.PLUS):
+        self.factor_first: 'Literal' = factor
+        self.factors: 'List[Literal]' = []
+        self.operations: 'List[Token]' = []
+        self.sign: 'str' = sign
 
     def set_sign(self, sign):
         self.sign = sign
@@ -31,3 +31,6 @@ class Term:
         for op, f in zip(self.operations, self.factors):
             s += f" {op.value} {f}"
         return s
+
+    def __repr__(self) -> str:
+        return self.__str__()

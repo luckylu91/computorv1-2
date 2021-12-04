@@ -1,3 +1,4 @@
+from typing import List
 from evaluation_utils import do_op
 from term import Term
 from tokenizing import Token
@@ -6,8 +7,8 @@ from tokenizing import Token
 class Expr:
     def __init__(self, term, sign: 'str' = Token.PLUS):
         self.term_first: 'Term' = term
-        self.terms: 'list[Term]' = []
-        self.operations: 'list[Token]' = []
+        self.terms: 'List[Term]' = []
+        self.operations: 'List[Token]' = []
         self.sign = sign
 
     def set_sign(self, sign):
@@ -34,3 +35,6 @@ class Expr:
         for op, t in zip(self.operations, self.terms):
             s += f" {op.value} {t}"
         return f"({s})"
+
+    def __repr__(self) -> str:
+        return self.__str__()

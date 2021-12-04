@@ -2,14 +2,21 @@
 
 import re
 
+from errors import UnKnownTokenError
+
 tokens_patterns = [
     r'\(', r'\)', r'\[', r'\]', ',', ';',
     r'\+', r'\-', r'\*{1,2}', '/', '%', '=',
-    r'[a-zA-Z]+', r'\d+(?:\.\d*)?'
+    r'[a-zA-Z]+', r'\d+(?:\.\d*)?', r'\S'
 ]
 token_pattern = '|'.join(tokens_patterns)
+token_pattern_valid = '|'.join(tokens_patterns[:-1])
 def tokenize(line):
-    return re.findall(token_pattern, line)
+    tokens = re.findall(token_pattern, line)
+    for token in tokens:
+        if not re.fullmatch(token_pattern_valid, token):
+            raise UnKnownTokenError(token)
+    return tokens
 
 is_variable = lambda tok: (re.fullmatch(r'[a-zA-Z]+', tok) != None)
 is_number = lambda tok: (re.fullmatch(r'\d+(\.\d*)?', tok) != None)
@@ -17,7 +24,7 @@ is_literal = lambda tok: (is_variable(tok) or is_number(tok))
 
 function_pattern = r'\s*([a-zA-Z]+)\s*\(\s*([a-zA-Z]+)\s*\)'
 is_function = lambda tok: (re.match(function_pattern, tok) != None)
-function_argument_names = lambda tok: 're'.match(function_pattern, tok).groups()
+function_argument_names = lambda tok: re.match(function_pattern, tok).groups()
 
 class Token:
     LITERAL = "LITERAL"
@@ -74,10 +81,9 @@ class Lexer:
     def str_to_token(cl, s: 'str'):
         if s in punctuation_dict:
             return Token(punctuation_dict[s], s)
-        elif is_literal(s):
-            return Token(Token.LITERAL, s)
-        raise Exception()
-
+        assert(is_literal(s))
+        return Token(Token.LITERAL, s)
+        
     def next_token(self):
         self.pos += 1
         if self.pos >= len(self.tokens):
@@ -95,11 +101,16 @@ if __name__ == '__main__':
     lines = [
         "funB(y) = 43 * y / (4.1 % 2. * y)",
         "matA = [[1,2];[3,2];[3,4]]",
-        "a ** b"
+        "a ** b",
+        "a°"
     ]
     for line in lines:
         print(f"--- BEGIN LINE {line} ---")
-        toks = tokenize(line)
+        try:
+            toks = tokenize(line)
+        except UnKnownTokenError as e:
+            print(e)
+            continue
         print(toks)
         lex = Lexer(toks)
         while True:
