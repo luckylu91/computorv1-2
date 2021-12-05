@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Union, List
+from typing import Iterable, Union, List
 from tokenizing import Token, Lexer, is_variable, is_number
 from math_types import Complex, Matrix
 from literal import Literal
@@ -9,6 +9,7 @@ from term import Term
 from errors import UnexpectedTokenError, UnknownVariablesError, MatrixInMatrixError, Error
 from python_types import Context
 import readline
+from evaluation_utils import rational_from_str
 
 # """
 # matl   : LBRACK INTEGER (COMA INTEGER)* RBRACK
@@ -28,9 +29,13 @@ class Parser:
         self.function_variables = function_variables
 
 
-    def eat(self, token_type: 'str' = None) -> 'Token':
+    def eat(self, token_type: 'Union[str, Iterable[str]]' = None) -> 'Token':
         tok = self.current_token
-        if token_type == None or tok.type == token_type:
+        if isinstance(token_type, str):
+            condition = (tok.type == token_type)
+        elif isinstance(token_type, Iterable):
+            condition = (tok.type in token_type)
+        if token_type == None or condition:
             self.current_token = self.lexer.next_token()
             return tok
         else:
@@ -40,12 +45,14 @@ class Parser:
     def _token_to_unit_litteral(self, tok: 'Token') -> 'Literal':
         if is_number(tok.value):
             type = Literal.NUMBER
+            value = rational_from_str(tok.value)
         elif is_variable(tok.value):
             type = Literal.VARIABLE
+            value = tok.value
             self.variables_present.add(tok.value)
         else:
-            type = Literal.MATRIX
-        return Literal(type, tok.value)
+            raise Exception("Invalid use of Parse._token_to_unit_litteral")
+        return Literal(type, value)
 
 
     # matline: LBRACK unit_literal (COMA unit_literal)* RBRACK
@@ -94,16 +101,18 @@ class Parser:
         return Literal(Literal.FUNCTION, (fname, arg))
 
 
-    def eat_optional_sign(self, can_be_signed: 'bool') -> 'str':
-        if can_be_signed and self.current_token.type in (Token.PLUS, Token.MINUS):
-            sign = self.eat().type
+    def eat_optional_sign(self) -> 'str':
+        if self.current_token.type in (Token.PLUS, Token.MINUS):
+            return self.eat().type
         else:
-            sign = Token.PLUS
-        return sign
+            return Token.PLUS
+
+    def eat_sign(self) -> 'str':
+        return self.eat((Token.PLUS, Token.MINUS)).type
 
 
-    # (can be signed)    literal: (PLUS | MINUS)? (unit_literal | matfull | function)
-    # (cannot be signed) literal: unit_literal | matfull | function
+    # (must be signed)    literal: (PLUS | MINUS) (unit_literal | matfull | function)
+    # (must'nt be signed) literal: (PLUS | MINUS)? (unit_literal | matfull | function)
     def literal(self, matrix_allowed=True) -> 'Literal':
         tok = self.current_token
         if tok.type == Token.LITERAL:
@@ -120,8 +129,8 @@ class Parser:
 
 
     # factor: literal | LPAREN expr RPAREN
-    def factor(self, can_be_signed: 'bool' = False, matrix_allowed=True) -> Union['Literal', 'Expr']:
-        sign = self.eat_optional_sign(can_be_signed)
+    def factor(self, matrix_allowed=True) -> Union['Literal', 'Expr']:
+        # sign = self.eat_optional_sign(must_be_signed)
         tok = self.current_token
         if tok.type == Token.LPAR:
             self.eat()
@@ -129,27 +138,41 @@ class Parser:
             self.eat(Token.RPAR)
         else:
             res = self.literal(matrix_allowed=matrix_allowed)
-        res.set_sign(sign)
+        # res.apply_sign(sign)
         return res
 
 
     # term: factor ((MATMULT | MULT | DIV | MOD) factor)*
-    def term(self, can_be_signed: 'bool' = False, matrix_allowed=True) -> 'Term':
-        t = Term(self.factor(can_be_signed=can_be_signed, matrix_allowed=matrix_allowed))
+    def term(self, must_be_signed: 'bool' = True, matrix_allowed=True) -> 'Term':
+        # t = Term(self.factor(must_be_signed=must_be_signed, matrix_allowed=matrix_allowed))
+        t = Term(self.factor(matrix_allowed=matrix_allowed))
         while self.current_token.type in (Token.MULT, Token.DIV, Token.MOD, Token.MATMULT):
             op = self.eat()
-            f = self.factor(can_be_signed=False, matrix_allowed=matrix_allowed)
-            t.push_back(op, f)
+            # f = self.factor(must_be_signed=False, matrix_allowed=matrix_allowed)
+            f = self.factor(matrix_allowed=matrix_allowed)
+            t.push_back(op.type, f)
         return t
 
 
     # expr: term ((PLUS | MINUS) term)*
     def expr(self, matrix_allowed=True) -> 'Expr':
-        e = Expr(self.term(can_be_signed=True, matrix_allowed=matrix_allowed))
+        sign = self.eat_optional_sign()
+        # e = Expr(self.term(can_be_signed=True, matrix_allowed=matrix_allowed))
+        e = Expr()
+        t = self.term(matrix_allowed=matrix_allowed)
+        t.set_sign(sign)
+        e.push_back(t)
+        # while self.current_token.type in (Token.PLUS, Token.MINUS):
+            # op = self.eat()
+            # t = self.term(can_be_signed=False, matrix_allowed=matrix_allowed)
+            # t = self.term(can_be_signed=False, matrix_allowed=matrix_allowed)
+            # e.push_back(op, t)
         while self.current_token.type in (Token.PLUS, Token.MINUS):
-            op = self.eat()
-            t = self.term(can_be_signed=False, matrix_allowed=matrix_allowed)
-            e.push_back(op, t)
+            sign = self.eat_sign()
+            # print(sign)
+            t = self.term(matrix_allowed=matrix_allowed)
+            t.set_sign(sign)
+            e.push_back(t)
         return e
 
 
@@ -164,16 +187,31 @@ class Parser:
 
 
 if __name__ == '__main__':
+
+    import sys
     from interpreting import interpret
+
     context = {
         'i': Complex.i()
     }
-    while True:
-        line = input()
-        try:
-            interpret(line, context)
-            context_str = {k: str(v).replace('\n', ';') for k, v in context.items()}
-            print(f"context is now : {context_str}")
-        except Error as e:
-            print(e)
+    if len(sys.argv) >= 2:
+        fname = sys.argv[1]
+        print(f"Interpreting file {fname}")
+        with open(fname) as f:
+            for line in f.readlines():
+                try:
+                    print("> " + line)
+                    interpret(line, context)
+                    print()
+                except Error as e:
+                    print(e)
+    else:
+        while True:
+            line = input('> ')
+            try:
+                interpret(line, context)
+                # context_str = {k: str(v).replace('\n', ';') for k, v in context.items()}
+                # print(f"context is now : {context_str}")
+            except Error as e:
+                print(e)
 

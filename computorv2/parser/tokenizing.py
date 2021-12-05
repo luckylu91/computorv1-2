@@ -67,6 +67,7 @@ punctuation_dict = {
     '%': Token.MOD,
     '=': Token.EQUAL
 }
+tokens_str = {t: s for s, t in punctuation_dict.items()}
 
 class Lexer:
     def __init__(self, tokens: 'list'):
@@ -83,7 +84,7 @@ class Lexer:
             return Token(punctuation_dict[s], s)
         assert(is_literal(s))
         return Token(Token.LITERAL, s)
-        
+
     def next_token(self):
         self.pos += 1
         if self.pos >= len(self.tokens):

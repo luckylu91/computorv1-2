@@ -53,13 +53,6 @@ class DifferentMatrixShapeError(MathError):
             f"{(m1.h, m1.w)} and {(m2.h, m2.w)}"
         super().__init__(message)
 
-class MatrixWrongMultiplicationOperatorError(MathError):
-    def __init__(self, m1, m2) -> None:
-        message = f"You can't use the multiplication operator '*' "\
-            f"between two matrices.\nInstead use the matrix multiplication "\
-            f"operator '**'.\nSaid matrices are\n{m1}\nand\n{m2}"
-        super().__init__(message)
-
 class MatrixDivisionOperatorError(MathError):
     def __init__(self, m1, m2) -> None:
         message = f"You can't use the division operator '/' "\
@@ -74,4 +67,6 @@ class ConversionError(MathError):
     def __init__(self, val, target_type) -> None:
         super().__init__(f"Cannot convert from {type(val)} to {target_type}")
 
-
+class ComplexModuloError(MathError):
+    def __init__(self) -> None:
+        super().__init__("Cannot apply modulo on complex numbers")

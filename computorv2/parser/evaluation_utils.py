@@ -7,19 +7,23 @@ def matmult(a, b):
     return Matrix.matmult(a, b)
 
 # def do_op(op: 'Token', l1: 'Literal', l2: 'Literal'):
-def do_op(op: 'Token', l1, l2):
+def do_op(op: 'str', l1, l2):
     # print(f"Doing {l1} {op.value} {l2}")
-    if op.type == Token.PLUS:
+    if l1 is None:
+        return l2
+    elif l2 is None:
+        return l1
+    if op == Token.PLUS:
         return l1 + l2
-    elif op.type == Token.MINUS:
+    elif op == Token.MINUS:
         return l1 - l2
-    elif op.type == Token.MULT:
+    elif op == Token.MULT:
         return l1 * l2
-    elif op.type == Token.DIV:
+    elif op == Token.DIV:
         return l1 / l2
-    elif op.type == Token.MOD:
+    elif op == Token.MOD:
         return l1 % l2
-    elif op.type == Token.MATMULT:
+    elif op == Token.MATMULT:
         return matmult(l1, l2)
 
 def rational_from_str(tok: 'str') -> 'Rational':
@@ -33,3 +37,9 @@ def rational_from_str(tok: 'str') -> 'Rational':
         pow_ten = 10 ** len(dec_part)
         int_part, dec_part = int(int_part), int(dec_part)
         return Rational(int_part * pow_ten + dec_part, pow_ten)
+
+def new_sign(sign1: 'str', sign2: 'str'):
+    if sign1 == sign2:
+        return Token.PLUS
+    else:
+        return Token.MINUS

@@ -3,7 +3,7 @@
 from typing import List, Union, Callable
 from math_utils import pgcd, ppcm, reduce_fraction
 from errors import ConversionError, DifferentMatrixShapeError, \
-    IncompatibleMatrixShapeError, MatrixWrongMultiplicationOperatorError, \
+    IncompatibleMatrixShapeError, ComplexModuloError, \
     MatrixDivisionOperatorError, DivisionByZeroError
 
 RationalOrInt = Union['int', 'Rational']
@@ -56,6 +56,8 @@ class Rational:
         return Rational(self.num * other.denum, self.denum * other.num)
 
     def __mod__(self, other: 'Rational') -> 'Rational':
+        if (isinstance(other, Complex)):
+            raise ComplexModuloError()
         return Rational((self.num * other.denum) % (other.num * self.denum), self.denum * other.denum)
 
     def __eq__(self, other: 'Scalar') -> 'bool':
@@ -83,6 +85,8 @@ class Rational:
         return self / other
 
     def __rmod__(self, other: 'Rational') -> 'Rational':
+        if (isinstance(other, Complex)):
+            raise ComplexModuloError()
         return self % other
 
     def __str__(self) -> 'str':
@@ -119,27 +123,34 @@ class Complex:
             return Complex(val)
         raise ConversionError(val, Complex)
 
-    def __add__(self, other: 'ScalarOrInt') -> 'Complex':
+    @classmethod
+    def scalar_from_re_im(cl, re: 'Rational', im: 'Rational') -> 'Scalar':
+        if im == 0:
+            return re
+        return Complex(re, im)
+
+    def __add__(self, other: 'ScalarOrInt') -> 'Scalar':
         other = Complex.from_any_value(other)
-        return Complex(self.re + other.re, self.im + other.im)
+        return Complex.scalar_from_re_im(self.re + other.re, self.im + other.im)
 
     def __neg__(self) -> 'Complex':
-        return Complex(-self.re, -self.im)
+        return Complex.scalar_from_re_im(-self.re, -self.im)
 
-    def __sub__(self, other: 'ScalarOrInt') -> 'Complex':
+    def __sub__(self, other: 'ScalarOrInt') -> 'Scalar':
         other = Complex.from_any_value(other)
         return self + (-other)
 
-    def __mul__(self, other: 'ScalarOrInt') -> 'Complex':
+    def __mul__(self, other: 'ScalarOrInt') -> 'Scalar':
         other = Complex.from_any_value(other)
-        return Complex(self.re * other.re - self.im * other.im,
-                       self.re * other.im + self.im * other.re)
+        return Complex.scalar_from_re_im(
+            self.re * other.re - self.im * other.im,
+            self.re * other.im + self.im * other.re)
 
     def _inverse(self) -> 'Complex':
         d = self.re * self.re + self.im * self.im
-        return Complex(self.re / d, -self.im / d)
+        return Complex.scalar_from_re_im(self.re / d, -self.im / d)
 
-    def __truediv__(self, other: 'ScalarOrInt') -> 'Complex':
+    def __truediv__(self, other: 'ScalarOrInt') -> 'Scalar':
         if other == 0:
             raise DivisionByZeroError()
         other = Complex.from_any_value(other)
@@ -149,19 +160,19 @@ class Complex:
         other = Complex.from_any_value(other)
         return self.re == other.re and self.im == other.im
 
-    def __radd__(self, other: 'ScalarOrInt') -> 'Complex':
+    def __radd__(self, other: 'ScalarOrInt') -> 'Scalar':
         return self + other
 
-    def __rsub__(self, other: 'ScalarOrInt') -> 'Complex':
+    def __rsub__(self, other: 'ScalarOrInt') -> 'Scalar':
         return self - other
 
-    def __rmul__(self, other: 'ScalarOrInt') -> 'Complex':
+    def __rmul__(self, other: 'ScalarOrInt') -> 'Scalar':
         return self * other
 
     def __req__(self, other: 'ScalarOrInt') -> 'bool':
         return self == other
 
-    def __rtruediv__(self, other: 'ScalarOrInt') -> 'Complex':
+    def __rtruediv__(self, other: 'ScalarOrInt') -> 'Scalar':
         return self._inverse() * other
 
     @classmethod
@@ -176,7 +187,7 @@ class Complex:
             return str(self.re)
         if self.re == 0:
             return Complex._imginary_part_str(self.im)
-        return str(self.re) + Complex._imginary_part_str(self.im)
+        return f"{str(self.re)} + {Complex._imginary_part_str(self.im)}"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -249,7 +260,8 @@ class Matrix:
 
     def __mul__(self, other: 'Value') -> 'Matrix':
         if isinstance(other, Matrix):
-            raise MatrixWrongMultiplicationOperatorError(self, other)
+            Matrix.verify_same_shape(self, other, "multiplication")
+            return Matrix.elementwise_operation(lambda x, y: x * y, self, other)
         else:
             return Matrix.elementwise_unary_operation(lambda x: x * other, self)
 

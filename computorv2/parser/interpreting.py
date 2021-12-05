@@ -14,6 +14,7 @@ def expression_from_str(line: 'str', context: 'dict', function_variables: 'set[s
     pars = Parser(lex, context, function_variables)
     e = pars.expr()
     pars.expect_eof()
+    print(f"Expression : {e}")
     return e
 
 
