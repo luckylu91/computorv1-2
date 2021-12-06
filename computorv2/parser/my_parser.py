@@ -3,13 +3,11 @@
 from typing import Iterable, Union, List
 from tokenizing import Token, Lexer, is_variable, is_number
 from math_types import Complex, Matrix
-from literal import Literal
-from expr import Expr
-from term import Term
+from expressions import Literal, Term, Expr
 from errors import UnexpectedTokenError, UnknownVariablesError, MatrixInMatrixError, Error
 from python_types import Context
-import readline
 from evaluation_utils import rational_from_str
+import readline
 
 # """
 # matl   : LBRACK INTEGER (COMA INTEGER)* RBRACK
@@ -42,19 +40,6 @@ class Parser:
             raise UnexpectedTokenError(self.lexer, tok)
 
 
-    def _token_to_unit_litteral(self, tok: 'Token') -> 'Literal':
-        if is_number(tok.value):
-            type = Literal.NUMBER
-            value = rational_from_str(tok.value)
-        elif is_variable(tok.value):
-            type = Literal.VARIABLE
-            value = tok.value
-            self.variables_present.add(tok.value)
-        else:
-            raise Exception("Invalid use of Parse._token_to_unit_litteral")
-        return Literal(type, value)
-
-
     # matline: LBRACK unit_literal (COMA unit_literal)* RBRACK
     def matline(self) -> 'List[Literal]':
         values = []
@@ -79,10 +64,6 @@ class Parser:
         return lines
 
 
-    def unit_literal(self) -> 'Literal':
-        return self._token_to_unit_litteral(self.eat(Token.LITERAL))
-
-
     # Will produce a matfull for a matline or matfull
     def matrix(self) -> 'Literal':
         tok1 = self.lexer.get_token(1)
@@ -93,10 +74,36 @@ class Parser:
         return Literal(Literal.MATRIX, m)
 
 
+    def unit_literal(self) -> 'Literal':
+        tok = self.eat(Token.LITERAL)
+        if is_number(tok.value):
+            type = Literal.NUMBER
+            value = rational_from_str(tok.value)
+        elif is_variable(tok.value):
+            if tok.value in self.function_variables:
+                type = Literal.FUN_VARIABLE
+            else:
+                type = Literal.VARIABLE
+            value = tok.value
+            self.variables_present.add(tok.value)
+        else:
+            raise Exception("Invalid use of Parse._token_to_unit_litteral")
+        return Literal(type, value)
+
+
     def function(self) -> 'Literal':
         fname = self.eat(Token.LITERAL).value
         self.eat(Token.LPAR)
-        arg = self._token_to_unit_litteral(self.eat(Token.LITERAL))
+        tok = self.current_token
+        if tok.type == Token.LITERAL:
+            if tok.type == Token.VARIABLE and tok.value in self.function_variables:
+                raise RecursiveFunctionDefinitonError()
+            else:
+                arg = self.unit_literal()
+        elif tok.type == Token.LBRACK:
+            arg = self.matrix()
+        else:
+            raise UnexpectedTokenError(self.lexer, self.current_token)
         self.eat(Token.RPAR)
         return Literal(Literal.FUNCTION, (fname, arg))
 
@@ -120,9 +127,6 @@ class Parser:
                 return self.function()
             else:
                 return self.unit_literal()
-                # res = self._token_to_unit_litteral(tok)
-                # self.eat()
-                # return res
         elif matrix_allowed:
             return self.matrix()
         raise MatrixInMatrixError()
@@ -130,7 +134,6 @@ class Parser:
 
     # factor: literal | LPAREN expr RPAREN
     def factor(self, matrix_allowed=True) -> Union['Literal', 'Expr']:
-        # sign = self.eat_optional_sign(must_be_signed)
         tok = self.current_token
         if tok.type == Token.LPAR:
             self.eat()
@@ -138,17 +141,14 @@ class Parser:
             self.eat(Token.RPAR)
         else:
             res = self.literal(matrix_allowed=matrix_allowed)
-        # res.apply_sign(sign)
         return res
 
 
     # term: factor ((MATMULT | MULT | DIV | MOD) factor)*
-    def term(self, must_be_signed: 'bool' = True, matrix_allowed=True) -> 'Term':
-        # t = Term(self.factor(must_be_signed=must_be_signed, matrix_allowed=matrix_allowed))
+    def term(self, matrix_allowed=True) -> 'Term':
         t = Term(self.factor(matrix_allowed=matrix_allowed))
         while self.current_token.type in (Token.MULT, Token.DIV, Token.MOD, Token.MATMULT):
             op = self.eat()
-            # f = self.factor(must_be_signed=False, matrix_allowed=matrix_allowed)
             f = self.factor(matrix_allowed=matrix_allowed)
             t.push_back(op.type, f)
         return t
@@ -157,19 +157,12 @@ class Parser:
     # expr: term ((PLUS | MINUS) term)*
     def expr(self, matrix_allowed=True) -> 'Expr':
         sign = self.eat_optional_sign()
-        # e = Expr(self.term(can_be_signed=True, matrix_allowed=matrix_allowed))
         e = Expr()
         t = self.term(matrix_allowed=matrix_allowed)
         t.set_sign(sign)
         e.push_back(t)
-        # while self.current_token.type in (Token.PLUS, Token.MINUS):
-            # op = self.eat()
-            # t = self.term(can_be_signed=False, matrix_allowed=matrix_allowed)
-            # t = self.term(can_be_signed=False, matrix_allowed=matrix_allowed)
-            # e.push_back(op, t)
         while self.current_token.type in (Token.PLUS, Token.MINUS):
             sign = self.eat_sign()
-            # print(sign)
             t = self.term(matrix_allowed=matrix_allowed)
             t.set_sign(sign)
             e.push_back(t)
@@ -202,9 +195,9 @@ if __name__ == '__main__':
                 try:
                     print("> " + line)
                     interpret(line, context)
-                    print()
                 except Error as e:
                     print(e)
+                print()
     else:
         while True:
             line = input('> ')

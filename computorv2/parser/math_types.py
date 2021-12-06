@@ -3,7 +3,7 @@
 from typing import List, Union, Callable
 from math_utils import pgcd, ppcm, reduce_fraction
 from errors import ConversionError, DifferentMatrixShapeError, \
-    IncompatibleMatrixShapeError, ComplexModuloError, \
+    IncompatibleMatrixShapeError, ModuloError, \
     MatrixDivisionOperatorError, DivisionByZeroError
 
 RationalOrInt = Union['int', 'Rational']
@@ -27,8 +27,10 @@ class Rational:
         return Rational(1)
 
     def __add__(self, other) -> 'Scalar':
-        if isinstance(other, Complex):
+        if isinstance(other, Complex) or isinstance(other, Matrix):
             return other + self
+        if isinstance(other, int):
+            other = Rational(other)
         new_denum = ppcm(self.denum, other.denum)
         return Rational(self.num * new_denum // self.denum + other.num * new_denum // other.denum, new_denum)
 
@@ -37,12 +39,14 @@ class Rational:
 
     def __sub__(self, other: 'Scalar') -> 'Scalar':
         if isinstance(other, Complex):
-            return other - self
+            return other.__rsub__(self)
         return self + (-other)
 
     def __mul__(self, other: 'Scalar') -> 'Scalar':
-        if isinstance(other, Complex):
+        if isinstance(other, Complex) or isinstance(other, Matrix):
             return other * self
+        if isinstance(other, int):
+            other = Rational(other)
         return Rational(self.num * other.num, self.denum * other.denum)
 
     # def __invert__(self):
@@ -51,13 +55,17 @@ class Rational:
     def __truediv__(self, other: 'Scalar') -> 'Scalar':
         if other == 0:
             raise DivisionByZeroError()
-        if isinstance(other, Complex):
-            return Complex(self, 0) / other
+        if isinstance(other, Complex) or isinstance(other, Matrix):
+            return other.__rtruediv__(self)
+        if isinstance(other, int):
+            other = Rational(other)
         return Rational(self.num * other.denum, self.denum * other.num)
 
     def __mod__(self, other: 'Rational') -> 'Rational':
-        if (isinstance(other, Complex)):
-            raise ComplexModuloError()
+        if isinstance(other, Complex) or isinstance(other, Matrix):
+            raise ModuloError(Rational, type(other))
+        if isinstance(other, int):
+            other = Rational(other)
         return Rational((self.num * other.denum) % (other.num * self.denum), self.denum * other.denum)
 
     def __eq__(self, other: 'Scalar') -> 'bool':
@@ -82,12 +90,16 @@ class Rational:
         return self == other
 
     def __rtruediv__(self, other: 'Scalar') -> 'Scalar':
-        return self / other
+        if isinstance(other, int):
+            other = Rational(other)
+        return other / self
 
     def __rmod__(self, other: 'Rational') -> 'Rational':
-        if (isinstance(other, Complex)):
-            raise ComplexModuloError()
-        return self % other
+        if isinstance(other, Complex) or isinstance(other, Matrix):
+            raise ModuloError(type(other), Rational)
+        if isinstance(other, int):
+            other = Rational(other)
+        return other % self
 
     def __str__(self) -> 'str':
         if self.denum == 1:

@@ -67,6 +67,6 @@ class ConversionError(MathError):
     def __init__(self, val, target_type) -> None:
         super().__init__(f"Cannot convert from {type(val)} to {target_type}")
 
-class ComplexModuloError(MathError):
-    def __init__(self) -> None:
-        super().__init__("Cannot apply modulo on complex numbers")
+class ModuloError(MathError):
+    def __init__(self, type1, type2) -> None:
+        super().__init__(f"Invalid types for modulo: {type1} and {type2}")

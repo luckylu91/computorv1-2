@@ -1,8 +1,8 @@
 from typing import Union
+from expressions import Expr
 from math_types import Rational, Complex, Matrix
 from tokenizing import Lexer, is_variable, is_number, tokenize, \
                         is_function, function_argument_names
-from expr import Expr
 from my_parser import Parser
 from errors import WrongEqualSignCount
 
@@ -14,7 +14,7 @@ def expression_from_str(line: 'str', context: 'dict', function_variables: 'set[s
     pars = Parser(lex, context, function_variables)
     e = pars.expr()
     pars.expect_eof()
-    print(f"Expression : {e}")
+    # print(f"Expression : {e}")
     return e
 
 
@@ -39,7 +39,15 @@ def interpret(line, context: 'dict | str'):
         elif is_function(left):
             fun_name, variable_name = function_argument_names(left)
             fun_expr = expression_from_str(right, context, function_variables={variable_name})
-            context[fun_name] = (fun_expr, variable_name)
+######
+            fun_expr.replace(context)
+            print(fun_expr)
+            print(f"fun_expr.is_polynomial(): {fun_expr.is_polynomial()}")
+            if fun_expr.is_polynomial():
+                p = fun_expr.to_polynomial()
+                print(p)
+######
+            context[fun_name] = (fun_expr, f"FUN_VAR[{variable_name}]")
             #....
         else:
             raise Exception()
