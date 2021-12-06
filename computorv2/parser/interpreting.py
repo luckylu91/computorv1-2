@@ -1,12 +1,13 @@
 from typing import Union
 from expressions import Expr
 from math_types import Rational, Complex, Matrix
-from tokenizing import Lexer, is_variable, is_number, tokenize, \
+from tokenizing import Lexer, Token, is_variable, is_number, tokenize, \
                         is_function, function_argument_names
 from my_parser import Parser
 from errors import WrongEqualSignCount
 
 Value = Union['Rational', 'Complex', 'Matrix']
+
 
 def expression_from_str(line: 'str', context: 'dict', function_variables: 'set[str]' = set()) -> 'Expr':
     toks = tokenize(line)
@@ -14,8 +15,20 @@ def expression_from_str(line: 'str', context: 'dict', function_variables: 'set[s
     pars = Parser(lex, context, function_variables)
     e = pars.expr()
     pars.expect_eof()
+    ####
+    e.replace(context)
+    ####
+    pars.check_unknown_variables()
     # print(f"Expression : {e}")
     return e
+
+def expression_and_variables_from_str(line: 'str', context: 'dict'):
+    toks = tokenize(line)
+    lex = Lexer(toks)
+    pars = Parser(lex, context)
+    e = pars.expr()
+    e.replace(context)
+    return e, pars.unknown_variables()
 
 
 def evaluate(line: 'str', context: 'dict') -> 'Value':
@@ -32,6 +45,22 @@ def interpret(line, context: 'dict | str'):
     left, right = left.strip(), right.strip()
     if right == '?':
         print(evaluate(left, context))
+    elif right.endswith('?'):
+        right = right[:-1]
+        left_expr, left_variables = expression_and_variables_from_str(left, context)
+        right_expr, right_variables = expression_and_variables_from_str(right, context)
+        assert(len(left_variables.union(right_variables)) <= 1)
+        right_expr.apply_sign(Token.MINUS)
+        left_expr.extend(right_expr)
+        left_expr.replace(context)
+        left_expr = left_expr.fun_expanded(context)
+        left_expr.do_modulos()
+        print(f"expr is polynomial: {left_expr.is_polynomial()}")
+        if left_expr.is_polynomial():
+            p = left_expr.to_polynomial()
+            print(p)
+
+
     else:
         if is_variable(left):
             context[left] = evaluate(right, context)

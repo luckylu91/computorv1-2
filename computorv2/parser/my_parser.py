@@ -168,13 +168,16 @@ class Parser:
             e.push_back(t)
         return e
 
-
     def expect_eof(self):
         self.eat(Token.EOF)
-        unknown_variables = set(
+
+    def unknown_variables(self):
+        return {
             vp for vp in self.variables_present
-                if vp not in self.context and vp not in self.function_variables
-        )
+                if vp not in self.context and vp not in self.function_variables}
+
+    def check_unknown_variables(self):
+        unknown_variables = self.unknown_variables()
         if len(unknown_variables) > 0:
             raise UnknownVariablesError(unknown_variables)
 
