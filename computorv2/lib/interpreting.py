@@ -57,10 +57,10 @@ def interpret(line, context: 'dict | str'):
         left_expr.replace(context)
         left_expr = left_expr.fun_expanded(context)
         left_expr.do_modulos()
-        print(f"expr is polynomial: {left_expr.is_polynomial()}")
+        # print(f"expr is polynomial: {left_expr.is_polynomial()}")
         if left_expr.is_polynomial():
-            p = left_expr.to_polynomial()
-            print(p)
+            poly = left_expr.to_polynomial()
+            poly.print_solutions()
 
     else:
         if is_variable(left):
@@ -72,7 +72,7 @@ def interpret(line, context: 'dict | str'):
 ######
             fun_expr.replace(context)
             print(fun_expr)
-            print(f"fun_expr.is_polynomial(): {fun_expr.is_polynomial()}")
+            # print(f"fun_expr.is_polynomial(): {fun_expr.is_polynomial()}")
             if fun_expr.is_polynomial():
                 p = fun_expr.to_polynomial()
                 print(p)

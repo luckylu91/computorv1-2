@@ -108,6 +108,9 @@ class Rational:
             other = Rational(other)
         return other % self
 
+    def __float__(self) -> 'float':
+        return self.num / self.denum
+
     def __str__(self) -> 'str':
         if self.denum == 1:
             return str(self.num)
