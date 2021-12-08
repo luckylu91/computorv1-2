@@ -2,7 +2,7 @@ from typing import Iterable, Union, List
 from .tokenizing import Token, Lexer, is_variable, is_number
 from ..blocks.expressions import Literal, Term, Expr
 from ..blocks.math_types import Rational, Matrix
-from ..errors import UnexpectedTokenError, UnknownVariablesError, MatrixInMatrixError, RecursiveFunctionDefinitonError
+from ..utils.errors import UnexpectedTokenError, UnknownVariablesError, MatrixInMatrixError, RecursiveFunctionDefinitonError
 from ..utils.python_types import Context
 
 
@@ -144,13 +144,37 @@ class Parser:
             res = self.literal(matrix_allowed=matrix_allowed)
         return res
 
-    # term: factor ((MATMULT | MULT | DIV | MOD) factor)*
+
+
+    # term: factor ((MATMULT | MULT | DIV | MOD | POW) factor)*
     def term(self, matrix_allowed=True) -> 'Term':
+
+        can_skip_mult_left = lambda: self.current_token.type == Token.LPAR or is_number(self.current_token.value)
+        can_skip_mult_right = lambda: is_variable(self.current_token.value) or self.current_token.type == Token.LPAR
+        is_term_operation = lambda: self.current_token.type in (Token.MULT, Token.DIV, Token.MOD, Token.MATMULT, Token.POW)
+        is_term_factor = lambda: self.current_token.type in (Token.LITERAL, Token.LPAR)
+
+        can_skip_mult = can_skip_mult_left()
         t = Term(self.factor(matrix_allowed=matrix_allowed))
-        while self.current_token.type in (Token.MULT, Token.DIV, Token.MOD, Token.MATMULT):
-            op = self.eat()
+        while True:
+            if is_term_operation():
+                op = self.eat()
+            elif can_skip_mult:
+                if can_skip_mult_right():
+                    op = Token(Token.MULT, '*')
+                else:
+                    raise UnexpectedTokenError(self.current_token)
+            else:
+                raise UnexpectedTokenError(self.current_token)
             f = self.factor(matrix_allowed=matrix_allowed)
             t.push_back(op.type, f)
+            can_skip_mult = can_skip_mult_left()
+            if not is_term_operation() and not is_term_factor():
+                break
+        # while self.current_token.type in (Token.MULT, Token.DIV, Token.MOD, Token.MATMULT, Token.POW):
+        #     op = self.eat()
+        #     f = self.factor(matrix_allowed=matrix_allowed)
+        #     t.push_back(op.type, f)
         return t
 
     # expr: term ((PLUS | MINUS) term)*

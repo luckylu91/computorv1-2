@@ -5,7 +5,7 @@ from .blocks.math_types import Rational, Complex, Matrix
 from .parsing.tokenizing import Lexer, Token, is_variable, tokenize, \
                                 is_function, function_argument_names
 from .parsing.parser import Parser
-from .errors import WrongEqualSignCount
+from .utils.errors import WrongEqualSignCount
 
 Value = Union['Rational', 'Complex', 'Matrix']
 

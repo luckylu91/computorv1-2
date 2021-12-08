@@ -2,7 +2,7 @@ from typing import List, Union, Callable
 
 import functools
 from ..utils.math_utils import ppcm, reduce_fraction
-from ..errors import ConversionError, DifferentMatrixShapeError, \
+from ..utils.errors import ConversionError, DifferentMatrixShapeError, \
                      IncompatibleMatrixShapeError, ModuloError, \
                      MatrixDivisionOperatorError, DivisionByZeroError
 
@@ -10,6 +10,27 @@ RationalOrInt = Union['int', 'Rational']
 Scalar = Union['Rational', 'Complex']
 ScalarOrInt = Union['int', 'Rational', 'Complex']
 Value = Union['Rational', 'Complex', 'Matrix']
+
+
+def exponent_check(exponent: 'ScalarOrInt'):
+    if isinstance(exponent, Complex):
+        if exponent.im == 0:
+            exponent = exponent.re
+        else:
+            raise ComplexExponentError()
+    if isinstance(exponent, int):
+        exponent = Rational(exponent)
+    if exponent.denum != 1:
+        raise NonIntegerExponentError()
+    return exponent.denum
+
+def power(scalar: 'Scalar', exponent: 'int', one: 'Scalar') -> 'Scalar':
+    res = one
+    operation = (lambda x, y: x * y) if exponent > 0 else (lambda x, y: x / y)
+    for _ in range(abs(exponent)):
+        res = operation(res, scalar)
+    return res
+
 
 @functools.total_ordering
 class Rational:
@@ -65,6 +86,10 @@ class Rational:
             other = Rational(other)
         return Rational((self.num * other.denum) % (other.num * self.denum), self.denum * other.denum)
 
+    def __pow__(self, other: 'Rational') -> 'Rational':
+        exponent = exponent_check(other)
+        return power(self, exponent, Rational.one())
+
     def __eq__(self, other: 'Scalar') -> 'bool':
         if isinstance(other, Rational):
             return self.num == other.num and self.denum == other.denum
@@ -107,6 +132,11 @@ class Rational:
         if isinstance(other, int):
             other = Rational(other)
         return other % self
+
+    def __rpow__(self, other: 'Scalar') -> 'Scalar':
+        if isinstance(other, int):
+            other = Rational(other)
+        return other ** self
 
     def __float__(self) -> 'float':
         return self.num / self.denum
@@ -178,6 +208,10 @@ class Complex:
         other = Complex.from_any_value(other)
         return self * other._inverse()
 
+    def __pow__(self, other: 'Rational') -> 'Rational':
+        exponent = exponent_check(other)
+        return power(self, exponent, Complex.one())
+
     def __eq__(self, other: 'ScalarOrInt') -> 'bool':
         other = Complex.from_any_value(other)
         return self.re == other.re and self.im == other.im
@@ -196,6 +230,11 @@ class Complex:
 
     def __rtruediv__(self, other: 'ScalarOrInt') -> 'Scalar':
         return self._inverse() * other
+
+    def __rpow__(self, other: 'Scalar') -> 'Scalar':
+        if isinstance(other, int):
+            other = Rational(other)
+        return other ** self
 
     @classmethod
     def _imginary_part_str(cl, im: 'Rational'):

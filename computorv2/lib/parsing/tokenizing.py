@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import re
-from ..errors import UnKnownTokenError
+from ..utils.errors import UnKnownTokenError
 
 tokens_patterns = [
     r'\(', r'\)', r'\[', r'\]', ',', ';',
-    r'\+', r'\-', r'\*{1,2}', '/', '%', '=',
+    r'\+', r'\-', r'\*{1,2}', '/', '%', r'\^', '=',
     r'[a-zA-Z]+', r'\d+(?:\.\d*)?', r'\S'
 ]
 token_pattern = '|'.join(tokens_patterns)
@@ -35,6 +35,7 @@ class Token:
     MATMULT = "MATMULT"
     DIV = "DIV"
     MOD = "MOD"
+    POW = "POW"
     LPAR = "LPAR"
     RPAR = "RPAR"
     LBRACK = "LBRACK"
@@ -64,6 +65,7 @@ punctuation_dict = {
     '**': Token.MATMULT,
     '/': Token.DIV,
     '%': Token.MOD,
+    '^': Token.POW,
     '=': Token.EQUAL
 }
 tokens_str = {t: s for s, t in punctuation_dict.items()}
@@ -95,28 +97,3 @@ class Lexer:
         if self.pos + i >= len(self.tokens):
             return Lexer.eof_token()
         return self.str_to_token(self.tokens[self.pos + i])
-
-
-if __name__ == '__main__':
-    lines = [
-        "funB(y) = 43 * y / (4.1 % 2. * y)",
-        "matA = [[1,2];[3,2];[3,4]]",
-        "a ** b",
-        "a°"
-    ]
-    for line in lines:
-        print(f"--- BEGIN LINE {line} ---")
-        try:
-            toks = tokenize(line)
-        except UnKnownTokenError as e:
-            print(e)
-            continue
-        print(toks)
-        lex = Lexer(toks)
-        while True:
-            tok = lex.next_token()
-            print(tok)
-            if tok.type == Token.EOF:
-                break
-        print("--- END LINE ---")
-        print()

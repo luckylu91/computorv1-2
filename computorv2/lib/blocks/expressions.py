@@ -1,12 +1,14 @@
-from typing import Union, List, Any
+from typing import Union, List, Any, Callable
 from copy import deepcopy
 from functools import reduce
+
+from computorv2.lib.interpreting import evaluate
 
 from .math_types import Matrix
 from .poly import Poly
 from ..parsing.tokenizing import Token, tokens_str
 from ..utils.python_types import Factor, Value, Context
-from ..errors import UnknownFunctionError, InvalidMatMultUseError
+from ..utils.errors import UnknownFunctionError, InvalidMatMultUseError
 
 def matmult(m1: 'Matrix', m2: 'Matrix') -> Matrix:
     if not isinstance(m1, Matrix) or not isinstance(m2, Matrix):
@@ -28,6 +30,8 @@ def do_op(op: 'str', l1: 'Literal', l2: 'Literal') -> 'Value':
         return l1 / l2
     elif op == Token.MOD:
         return l1 % l2
+    elif op == Token.POW:
+        return l1 ** l2
     elif op == Token.MATMULT:
         return matmult(l1, l2)
 
@@ -53,7 +57,7 @@ class Literal:
         self.type = type
         self.value = value
 
-    def evaluate(self, context: 'Context'):
+    def evaluate(self, context: 'Context') -> 'Value':
         if self.type == Literal.NUMBER:
             return self.value
         elif self.type == Literal.VARIABLE:
@@ -75,17 +79,17 @@ class Literal:
                 raise Exception()
             return context[f"FUN_VAR[{self.value}]"]
 
-    def replace(self, context):
+    def replace(self, context: 'Context') -> None:
         if self.type == Literal.VARIABLE and self.value in context:
             self.type = Literal.NUMBER
             self.value = context[self.value]
         elif self.type == Literal.FUNCTION:
             self.value[1].replace(context)
 
-    def contains_variables(self):
+    def contains_variables(self) -> None:
         return self.type in (Literal.VARIABLE, Literal.FUN_VARIABLE)
 
-    def fun_expanded(self, context):
+    def fun_expanded(self, context: 'Context') -> 'Union[Expr, Literal]':
         if self.type == Literal.FUNCTION:
             fun_name, arg = self.value
             if not fun_name in context:
@@ -107,12 +111,12 @@ class Literal:
             s = f"{self.value[0]}({self.value[1]})"
         return s
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> 'str':
         return self.__str__()
 
 
 # Term: Multiplication / Division / Modulo of Literals or Exprs (Factor)
-# term: 'factor' ((MATMULT | MULT | DIV | MOD) factor)*
+# term: 'factor' ((MATMULT | MULT | DIV | MOD | POW) factor)*
 class Term:
 
     def __init__(self, factor: 'Factor', sign: 'str' = Token.PLUS):
@@ -121,34 +125,44 @@ class Term:
         self.operations: 'List[str]' = []
         self.sign: 'str' = sign
 
-    def set_sign(self, sign):
+    def set_sign(self, sign: 'str') -> None:
         self.sign = sign
 
-    def apply_sign(self, sign):
+    def apply_sign(self, sign) -> None:
         if self.sign == sign:
             self.sign = Token.PLUS
         else:
             self.sign = Token.MINUS
 
-    def push_back(self, op: 'str', factor: 'Factor'):
+    def push_back(self, op: 'str', factor: 'Factor') -> None:
         self.factors.append(factor)
         self.operations.append(op)
 
-    def extend(self, op: 'str', other: 'Term'):
+    def extend(self, op: 'str', other: 'Term') -> None:
         self.operations.extend([op, *other.operations])
         self.factors.extend([other.factor_first, *other.factors])
 
-    def _apply_sign_to_result(self, val: 'Value'):
+    def _apply_sign_to_result(self, val: 'Value') -> 'Value':
         return val if self.sign == Token.PLUS else -val
 
-    def evaluate(self, context: 'Context'):
-        res = self.factor_first.evaluate(context)
-        fs = [f.evaluate(context) for f in self.factors]
+    def evaluated_factors(self, context: 'Context') -> 'Term':
+        res = Term(self.factor_first.evaluate(context), self.sign)
+        for op, factor in zip(self.operations, self.factors):
+            res.push_back(op, factor.evaluate(context))
+        return res
+
+    def evaluate(self, context: 'Context') -> 'Value':
+        scalar_term = self.evaluated_factors(context)
+        # res = self.factor_first.evaluate(context)
+        # fs = [f.evaluate(context) for f in self.factors]
+        f = lambda l1, l2: do_op(Token.POW, l1, l2)
+        scalar_term.do_one_operation(Token.POW, binary_fun=f)
+
         for op, f in zip(self.operations, fs):
             res = do_op(op, res, f)
         return self._apply_sign_to_result(res)
 
-    def contains_variables(self):
+    def contains_variables(self) -> 'bool':
         for factor in [self.factor_first, *self.factors]:
             if isinstance(factor, Literal) and factor.type in (Literal.FUN_VARIABLE, Literal.VARIABLE):
                 return True
@@ -156,18 +170,16 @@ class Term:
                 return True
         return False
 
-    def do_modulos(self):
+    def do_one_operation(self, op: 'str', binary_fun: 'Callable' = None) -> None:
         factors = [self.factor_first, *self.factors]
         operations = []
         i = 0
         i_op = 0
         while i_op < len(self.operations):
-            while i_op < len(self.operations) and self.operations[i_op] == Token.MOD:
+            while i_op < len(self.operations) and self.operations[i_op] == op:
                 f1 = factors[i]
                 f2 = factors[i + 1]
-                if f1.contains_variables() or f2.contains_variables():
-                    raise Exception()
-                factors[i] = Literal(Literal.NUMBER, f1.evaluate(set()) % f2.evaluate(set()))
+                factors[i] = binary_fun(f1, f2)
                 factors.pop(i + 1)
                 i_op += 1
             if i_op < len(self.operations):
@@ -177,6 +189,13 @@ class Term:
         self.factor_first = factors[0]
         self.factors = factors[1:]
         self.operations = operations
+
+    def do_modulos(self):
+        def f(f1: 'Factor', f2: 'Factor'):
+            if f1.contains_variables() or f2.contains_variables():
+                raise Exception()
+            return Literal(Literal.NUMBER, f1.evaluate(set()) % f2.evaluate(set()))
+        self.do_one_operation(Token.MOD, binary_fun=f)
 
     def is_polynomial(self):
         if not all(op in (Token.MULT, Token.DIV) for op in self.operations):
