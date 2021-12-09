@@ -1,10 +1,12 @@
 
-from typing import ClassVar, Dict
+from copy import deepcopy
+from typing import Dict
 from collections import defaultdict
 from math import sqrt
 
-from .math_types import Rational
+from .math_types import Rational, exponent_check, power
 from ..utils.python_types import Scalar
+from ..utils.errors import NotANumberError
 
 class Poly:
     def __init__(self, d: 'Dict[int, Scalar]' = dict()) -> None:
@@ -22,6 +24,11 @@ class Poly:
     def x(cl):
         return Poly({1: 1})
 
+    def to_scalar(self):
+        if len(self.d) > 1 or 0 not in self.d:
+            raise NotANumberError(self)
+        return Rational.zero() if 0 not in self.d else self.d[0]
+
     def __add__(self, other: 'Poly') -> 'Poly':
         d = defaultdict(Rational.zero)
         for i, v in [*self.d.items(), *other.d.items()]:
@@ -35,8 +42,24 @@ class Poly:
                 d[i + j] = d[i + j] + v1 * v2
         return Poly(d)
 
+    def __truediv__(self, other: 'Poly') -> 'Poly':
+        if isinstance(other, Poly):
+            other = other.to_scalar()
+        d = {i: v / other for i, v in self.d.items()}
+        return Poly(d)
+
     def __neg__(self):
         return Poly({i: -v for i, v in self.d.items()})
+
+    def __pow__(self, other: 'Poly') -> 'Poly':
+        if isinstance(other, Poly):
+            other = other.to_scalar()
+        exponent = exponent_check(other)
+        assert(exponent >= 0)
+        return power(self, exponent, Poly.one())
+
+    # def __rpow__(self, other: 'Scalar') -> 'Scalar':
+    #     pass
 
     def degree(self) -> 'int':
         return
@@ -46,25 +69,23 @@ class Poly:
         return f"{val:.6f}".rstrip('0').rstrip('.')
 
     def print_solutions(self) -> None:
-        degree = max(self.d.keys())
+        degree = 0 if len(self.d) == 0 else max(self.d.keys())
         d_float = {i: float(v) for i, v in self.d.items()}
 
-        if degree == 0:
-            print("The equation simplifies to '0 = 0', solution is the whole real field")
-            exit(0)
-
         # Print reduced form and degree
-        print(f"Reduced form: {self}")
-        print(f"Polynomial degree: {degree - 1}")
+        print(f"Reduced form: {self} = 0")
+        print(f"Polynomial degree: {degree}")
+
+        if degree == 0:
+            if len(self.d) == 0 or self.d[0] == 0:
+                print("The equation simplifies to '0 = 0', solution is the whole real field")
+            else:
+                print("No solutions")
+            return
 
         # Print solutions depending on degree
         if degree > 2:
             print("The polynomial degree is strictly greater than 2, I can't solve.")
-            exit(0)
-
-        elif degree == 0:
-            print("There is no solution")
-            exit(0)
 
         elif degree == 1:
             b = 0 if 0 not in d_float else d_float[0]
@@ -114,8 +135,8 @@ class Poly:
             if i == 0 or v != 1:
                 s += str(v)
             if i >= 1:
-                if v != 1:
-                    s += "*"
+                # if v != 1:
+                #     s += "*"
                 s += "x"
                 if i >=2:
                     s += "^" + str(i)

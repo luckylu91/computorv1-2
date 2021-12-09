@@ -5,7 +5,7 @@ from .blocks.math_types import Rational, Complex, Matrix
 from .parsing.tokenizing import Lexer, Token, is_variable, tokenize, \
                                 is_function, function_argument_names
 from .parsing.parser import Parser
-from .utils.errors import WrongEqualSignCount
+from .utils.errors import WrongEqualSignCount, NonPolynomialEquation
 
 Value = Union['Rational', 'Complex', 'Matrix']
 
@@ -61,6 +61,8 @@ def interpret(line, context: 'dict | str'):
         if left_expr.is_polynomial():
             poly = left_expr.to_polynomial()
             poly.print_solutions()
+        else:
+            raise NonPolynomialEquation()
 
     else:
         if is_variable(left):
@@ -71,11 +73,11 @@ def interpret(line, context: 'dict | str'):
             fun_expr = expression_from_str(right, context, function_variables={variable_name})
 ######
             fun_expr.replace(context)
-            print(fun_expr)
-            # print(f"fun_expr.is_polynomial(): {fun_expr.is_polynomial()}")
-            if fun_expr.is_polynomial():
-                p = fun_expr.to_polynomial()
-                print(p)
+            # print(fun_expr)
+            # # print(f"fun_expr.is_polynomial(): {fun_expr.is_polynomial()}")
+            # if fun_expr.is_polynomial():
+            #     p = fun_expr.to_polynomial()
+            #     print(p)
 ######
             context[fun_name] = (fun_expr, f"FUN_VAR[{variable_name}]")
             #....

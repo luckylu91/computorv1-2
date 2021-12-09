@@ -124,8 +124,12 @@ class Parser:
     # (must'nt be signed) literal: (PLUS | MINUS)? (unit_literal | matfull | function)
     def literal(self, matrix_allowed=True) -> 'Literal':
         tok = self.current_token
+        # print("MAGAGHCDSHV")
+        # print(f"self.current_token={self.current_token}")
+        # print(f"self.lexer.get_token(1)={self.lexer.get_token(1)}")
         if tok.type == Token.LITERAL:
             if self.lexer.get_token(1).type == Token.LPAR:
+                # print("CANARFUN")
                 return self.function()
             else:
                 return self.unit_literal()
@@ -136,41 +140,59 @@ class Parser:
     # factor: literal | LPAREN expr RPAREN
     def factor(self, matrix_allowed=True) -> Union['Literal', 'Expr']:
         tok = self.current_token
+        # print("INVITRO")
+        # print(f"self.current_token={self.current_token}")
         if tok.type == Token.LPAR:
             self.eat()
             res = self.expr(matrix_allowed=matrix_allowed)
             self.eat(Token.RPAR)
         else:
+            # print("BOOL")
             res = self.literal(matrix_allowed=matrix_allowed)
+            # print("BOOLCARRE")
         return res
-
-
 
     # term: factor ((MATMULT | MULT | DIV | MOD | POW) factor)*
     def term(self, matrix_allowed=True) -> 'Term':
 
-        can_skip_mult_left = lambda: self.current_token.type == Token.LPAR or is_number(self.current_token.value)
-        can_skip_mult_right = lambda: is_variable(self.current_token.value) or self.current_token.type == Token.LPAR
-        is_term_operation = lambda: self.current_token.type in (Token.MULT, Token.DIV, Token.MOD, Token.MATMULT, Token.POW)
-        is_term_factor = lambda: self.current_token.type in (Token.LITERAL, Token.LPAR)
+        # can_skip_mult_left = lambda: (self.current_token.type in (Token.LPAR, Token.EOF) or is_number(self.current_token.value))
+        # can_skip_mult_right = lambda: (is_variable(self.current_token.value) or self.current_token.type == Token.LPAR)
+        is_term_operation = lambda: (self.current_token.type in (Token.MULT, Token.DIV, Token.MOD, Token.MATMULT, Token.POW))
+        is_term_factor = lambda: (self.current_token.type in (Token.LITERAL, Token.LPAR))
 
-        can_skip_mult = can_skip_mult_left()
+        def can_skip_mult(left, right):
+            return is_number(left.value) and is_variable(right.value)
+
+        # print(f"self.current_token={self.current_token}")
+        # can_skip_mult = can_skip_mult_left()
+        left = self.current_token
         t = Term(self.factor(matrix_allowed=matrix_allowed))
-        while True:
+        while is_term_operation() or is_term_factor():
+            # print(f"t={t}")
+            # print(f"self.current_token={self.current_token}")
+            # print(f"can_skip_mult={can_skip_mult}")
+            # print(f"can_skip_mult_right()={can_skip_mult_right()}")
+
+            right = self.current_token
             if is_term_operation():
+                # print("KOKO")
                 op = self.eat()
-            elif can_skip_mult:
-                if can_skip_mult_right():
-                    op = Token(Token.MULT, '*')
-                else:
-                    raise UnexpectedTokenError(self.current_token)
+            # elif can_skip_mult:
+            elif can_skip_mult(left, right):
+                # if can_skip_mult_right():
+                op = Token(Token.MULT, '*')
+                # else:
+                #     print("COCO")
+                #     raise UnexpectedTokenError(self.lexer, self.current_token)
             else:
-                raise UnexpectedTokenError(self.current_token)
+                # print("HUGO")
+                raise UnexpectedTokenError(self.lexer, self.current_token)
+            # print("OOF")
             f = self.factor(matrix_allowed=matrix_allowed)
             t.push_back(op.type, f)
-            can_skip_mult = can_skip_mult_left()
-            if not is_term_operation() and not is_term_factor():
-                break
+            # can_skip_mult = can_skip_mult_left()
+            left = self.current_token
+
         # while self.current_token.type in (Token.MULT, Token.DIV, Token.MOD, Token.MATMULT, Token.POW):
         #     op = self.eat()
         #     f = self.factor(matrix_allowed=matrix_allowed)

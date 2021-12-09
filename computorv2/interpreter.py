@@ -4,7 +4,7 @@ import sys
 from lib.interpreting import interpret
 from lib.blocks.math_types import Complex
 from lib.utils.python_types import Context
-from lib.errors import Error
+from lib.utils.errors import Error
 import readline # for extended 'input()' function
 
 def try_interpret(line: 'str', context: 'Context', debug: 'bool' = False):

@@ -2,13 +2,12 @@ from typing import Union, List, Any, Callable
 from copy import deepcopy
 from functools import reduce
 
-from computorv2.lib.interpreting import evaluate
-
 from .math_types import Matrix
 from .poly import Poly
 from ..parsing.tokenizing import Token, tokens_str
 from ..utils.python_types import Factor, Value, Context
-from ..utils.errors import UnknownFunctionError, InvalidMatMultUseError
+from ..utils.errors import UnknownFunctionError, InvalidMatMultUseError, \
+                           NonPolynomialEquation
 
 def matmult(m1: 'Matrix', m2: 'Matrix') -> Matrix:
     if not isinstance(m1, Matrix) or not isinstance(m2, Matrix):
@@ -16,6 +15,7 @@ def matmult(m1: 'Matrix', m2: 'Matrix') -> Matrix:
 
 
 def do_op(op: 'str', l1: 'Literal', l2: 'Literal') -> 'Value':
+    # print(f"do_op({op}, {l1}: {type(l1).__name__}, {l2}: {type(l2).__name__})")
     if l1 is None:
         return l2
     elif l2 is None:
@@ -145,20 +145,20 @@ class Term:
     def _apply_sign_to_result(self, val: 'Value') -> 'Value':
         return val if self.sign == Token.PLUS else -val
 
-    def evaluated_factors(self, context: 'Context') -> 'Term':
-        res = Term(self.factor_first.evaluate(context), self.sign)
+    def mapped_term(self, map_fun: 'Callable') -> 'Term':
+        res = Term(map_fun(self.factor_first), self.sign)
         for op, factor in zip(self.operations, self.factors):
-            res.push_back(op, factor.evaluate(context))
+            res.push_back(op, map_fun(factor))
         return res
 
     def evaluate(self, context: 'Context') -> 'Value':
-        scalar_term = self.evaluated_factors(context)
+        scalar_term = self.mapped_term(lambda factor: factor.evaluate(context)) #
+        f = lambda l1, l2: do_op(Token.POW, l1, l2) #
+        scalar_term.do_one_operation(Token.POW, binary_fun=f) #
         # res = self.factor_first.evaluate(context)
         # fs = [f.evaluate(context) for f in self.factors]
-        f = lambda l1, l2: do_op(Token.POW, l1, l2)
-        scalar_term.do_one_operation(Token.POW, binary_fun=f)
-
-        for op, f in zip(self.operations, fs):
+        res = scalar_term.factor_first
+        for op, f in zip(self.operations, scalar_term.factors):
             res = do_op(op, res, f)
         return self._apply_sign_to_result(res)
 
@@ -193,40 +193,51 @@ class Term:
     def do_modulos(self):
         def f(f1: 'Factor', f2: 'Factor'):
             if f1.contains_variables() or f2.contains_variables():
-                raise Exception()
+                raise NonPolynomialEquation()
             return Literal(Literal.NUMBER, f1.evaluate(set()) % f2.evaluate(set()))
         self.do_one_operation(Token.MOD, binary_fun=f)
 
     def is_polynomial(self):
-        if not all(op in (Token.MULT, Token.DIV) for op in self.operations):
+        if not all(op in (Token.MULT, Token.DIV, Token.POW) for op in self.operations):
             return False
         op_factors = zip([Token.MULT, self.operations], [self.factor_first, *self.factors])
         for op, factor in op_factors:
             if isinstance(factor, Expr):
                 if not factor.is_polynomial():
                     return False
+            # TODO if variables simplifies to non-variable ?
             if op == Token.DIV and factor.contains_variables():
+                return False
+            if op == Token.POW and factor.contains_variables():
                 return False
         return True
 
     @classmethod
-    def _to_polynomial(cl, op: 'str', factor: 'Factor') -> 'Poly':
+    def _to_polynomial(cl, factor: 'Factor') -> 'Poly':
         if isinstance(factor, Literal):
             if factor.type == Literal.NUMBER:
-                val = factor.value if op == Token.MULT else 1 / factor.value
+                val = factor.value
                 return Poly({0: val})
             else:
-                assert(factor.type in (Literal.FUN_VARIABLE, Literal.VARIABLE))
-                assert(op == Token.MULT)
                 return Poly.x()
         else:
             return factor.to_polynomial()
 
     def to_polynomial(self):
-        op_factors = zip([Token.MULT, *self.operations], [self.factor_first, *self.factors])
-        polys = [Term._to_polynomial(op, factor) for op, factor in op_factors]
-        res = reduce(lambda x, y: x * y, polys, Poly.one())
+        poly_term = self.mapped_term(lambda factor: Term._to_polynomial(factor)) #
+        f = lambda l1, l2: do_op(Token.POW, l1, l2) #
+        poly_term.do_one_operation(Token.POW, binary_fun=f) #
+        res = poly_term.factor_first
+        for op, f in zip(self.operations, poly_term.factors):
+            res = do_op(op, res, f)
         return self._apply_sign_to_result(res)
+        # res = Poly.one()
+        # for op, factor in zip([Token.MULT, *self.operations], [self.factor_first, *self.factors]):
+        #     res = do_op(op, res, Term._to_polynomial(factor))
+        # # op_factors = zip([Token.MULT, *self.operations], [self.factor_first, *self.factors])
+        # # polys = [Term._to_polynomial(op, factor) for op, factor in op_factors]
+        # # res = reduce(lambda x, y: x * y, polys, Poly.one())
+        # return self._apply_sign_to_result(res)
 
     def _do_op(self, op, other: 'Union[Literal, Term]') -> 'Term':
         new_term = deepcopy(self)
@@ -246,7 +257,7 @@ class Term:
             factor.replace(context)
 
     def fun_expanded(self, context):
-        res = Term(self.factor_first.fun_expanded(context))
+        res = Term(self.factor_first.fun_expanded(context), sign=self.sign)
         for op, factor in zip(self.operations, self.factors):
             res.push_back(op, factor.fun_expanded(context))
         return res

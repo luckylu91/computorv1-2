@@ -45,11 +45,11 @@ class Token:
     EQUAL = "EQUAL"
     EOF = "EOF"
 
-    def __init__(self, type: 'str', value):
+    def __init__(self, type: 'str', value: 'str') -> None:
         self.type = type
         self.value = value
 
-    def __str__(self):
+    def __str__(self) -> None:
         return f"Token({self.type}, '{self.value}')"
 
 punctuation_dict = {
@@ -71,29 +71,29 @@ punctuation_dict = {
 tokens_str = {t: s for s, t in punctuation_dict.items()}
 
 class Lexer:
-    def __init__(self, tokens: 'list'):
+    def __init__(self, tokens: 'list') -> None:
         self.tokens = tokens
         self.pos = -1
 
     @classmethod
-    def eof_token(cl):
+    def eof_token(cl) -> 'Token':
         return Token(Token.EOF, None)
 
     @classmethod
-    def str_to_token(cl, s: 'str'):
+    def str_to_token(cl, s: 'str') -> 'Token':
         if s in punctuation_dict:
             return Token(punctuation_dict[s], s)
         assert(is_literal(s))
         return Token(Token.LITERAL, s)
 
-    def next_token(self):
+    def next_token(self) -> 'Token':
         self.pos += 1
         if self.pos >= len(self.tokens):
             return Lexer.eof_token()
         current_token = self.tokens[self.pos]
         return self.str_to_token(current_token)
 
-    def get_token(self, i: 'int'):
+    def get_token(self, i: 'int') -> 'Token':
         if self.pos + i >= len(self.tokens):
             return Lexer.eof_token()
         return self.str_to_token(self.tokens[self.pos + i])

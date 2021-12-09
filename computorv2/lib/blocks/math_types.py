@@ -4,13 +4,9 @@ import functools
 from ..utils.math_utils import ppcm, reduce_fraction
 from ..utils.errors import ConversionError, DifferentMatrixShapeError, \
                      IncompatibleMatrixShapeError, ModuloError, \
-                     MatrixDivisionOperatorError, DivisionByZeroError
-
-RationalOrInt = Union['int', 'Rational']
-Scalar = Union['Rational', 'Complex']
-ScalarOrInt = Union['int', 'Rational', 'Complex']
-Value = Union['Rational', 'Complex', 'Matrix']
-
+                     MatrixDivisionOperatorError, DivisionByZeroError, \
+                     ComplexExponentError, NonIntegerExponentError
+from ..utils.python_types import Scalar, Value, ScalarOrInt, RationalOrInt
 
 def exponent_check(exponent: 'ScalarOrInt'):
     if isinstance(exponent, Complex):
@@ -22,7 +18,7 @@ def exponent_check(exponent: 'ScalarOrInt'):
         exponent = Rational(exponent)
     if exponent.denum != 1:
         raise NonIntegerExponentError()
-    return exponent.denum
+    return exponent.num
 
 def power(scalar: 'Scalar', exponent: 'int', one: 'Scalar') -> 'Scalar':
     res = one
@@ -30,7 +26,6 @@ def power(scalar: 'Scalar', exponent: 'int', one: 'Scalar') -> 'Scalar':
     for _ in range(abs(exponent)):
         res = operation(res, scalar)
     return res
-
 
 @functools.total_ordering
 class Rational:
@@ -240,6 +235,8 @@ class Complex:
     def _imginary_part_str(cl, im: 'Rational'):
         if im == 1:
             return 'i'
+        elif im == -1:
+            return '-i'
         else:
             return str(im) + 'i'
 

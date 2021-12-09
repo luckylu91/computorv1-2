@@ -88,3 +88,18 @@ class InvalidMatMultUseError(MathError):
             f"'{type(m1).__name__}' and '{type(m2).__name__}'"
         super().__init__(message)
 
+class ComplexExponentError(MathError):
+    def __init__(self) -> None:
+        super().__init__("Complex exponent not handled")
+
+class NonIntegerExponentError(MathError):
+    def __init__(self) -> None:
+        super().__init__("Non integer exponent not handled")
+
+class NonPolynomialEquation(MathError):
+    def __init__(self) -> None:
+        super().__init__("Cannot solve a non polynomial equation")
+
+class NotANumberError(MathError):
+    def __init__(self, value) -> None:
+        super().__init__(f"Cannot convert '{value}' to a scalar value")
