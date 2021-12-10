@@ -66,18 +66,20 @@ class Literal:
             fun_name, arg = self.value
             if not fun_name in context:
                 raise UnknownFunctionError(fun_name)
-            if arg.type not in (Literal.NUMBER, Literal.MATRIX, Literal.VARIABLE):
-                raise Exception()
+            # if arg.type not in (Literal.NUMBER, Literal.MATRIX, Literal.VARIABLE):
+            #     raise Exception()
             fun_expr, variable_str = context[fun_name]
             arg_value = arg.evaluate(context)
-            context_fun = {variable_str: arg_value}
+            context_fun = deepcopy(context)
+            context_fun[variable_str] = arg_value
+            # context_fun = {variable_str: arg_value}
             return fun_expr.evaluate(context_fun)
         elif self.type == Literal.MATRIX:
             return Matrix.elementwise_unary_operation(lambda x: x.evaluate(context), self.value)
         elif self.type == Literal.FUN_VARIABLE:
-            if not f"FUN_VAR[{self.value}]" in context:
+            if not self.value in context:
                 raise Exception()
-            return context[f"FUN_VAR[{self.value}]"]
+            return context[self.value]
 
     def replace(self, context: 'Context') -> None:
         if self.type == Literal.VARIABLE and self.value in context:
@@ -94,21 +96,29 @@ class Literal:
             fun_name, arg = self.value
             if not fun_name in context:
                 raise UnknownFunctionError(fun_name)
-            if arg.type not in (Literal.NUMBER, Literal.MATRIX, Literal.VARIABLE):
-                raise Exception()
-            fun_expr, _ = context[fun_name]
-            return deepcopy(fun_expr)
+            # if arg.type not in (Literal.NUMBER, Literal.MATRIX, Literal.VARIABLE, Literal.FUN_VARIABLE):
+            #     raise Exception()
+            # arg : replace VARIABLE -> FUN_VARIABLE ?
+            # OU se debarasser de Literal.FUN_VARIABLE
+            fun_expr, variable_name = context[fun_name]
+            fun_expr = deepcopy(fun_expr)
+            fun_expr.replace({variable_name : arg})
+            return fun_expr
         else:
             return deepcopy(self)
 
 
-    def __str__(self) -> 'str':
+    def __str__(self, verbose: 'bool' = False) -> 'str':
         if self.type == Literal.MATRIX:
             s = str(self.value)
         elif self.type in (Literal.VARIABLE, Literal.NUMBER, Literal.FUN_VARIABLE):
-            s = f"{self.value}->{self.type}"
+            if verbose:
+                s = f"{self.value}->{self.type}"
+            else:
+                s = f"{self.value}"
         else:
-            s = f"{self.value[0]}({self.value[1]})"
+            assert(self.type == Literal.FUNCTION)
+            s = f"{self.value[0]}{self.value[1]}"
         return s
 
     def __repr__(self) -> 'str':
@@ -198,11 +208,14 @@ class Term:
     def is_polynomial(self):
         if not all(op in (Token.MULT, Token.DIV, Token.POW) for op in self.operations):
             return False
-        op_factors = zip([Token.MULT, self.operations], [self.factor_first, *self.factors])
+        op_factors = zip([Token.MULT, *self.operations], [self.factor_first, *self.factors])
         for op, factor in op_factors:
+            print(f"op: {op} ({type(op).__name__}), factor : {factor}")
             if isinstance(factor, Expr):
                 if not factor.is_polynomial():
                     return False
+            elif isinstance(factor, Literal):
+                assert(factor.type in (Literal.VARIABLE, Literal.FUN_VARIABLE, Literal.NUMBER))
             # TODO if variables simplifies to non-variable ?
             if op == Token.DIV and factor.contains_variables():
                 return False
@@ -260,10 +273,14 @@ class Term:
             res.push_back(op, factor.fun_expanded(context))
         return res
 
-    def __str__(self):
-        s = f"{tokens_str[self.sign]} {self.factor_first}"
-        for op, f in zip(self.operations, self.factors):
-            s += f" {tokens_str[op]} {f}"
+    def __str__(self, first_term : 'bool' = False, verbose: 'bool' = False):
+        if first_term:
+            s = "" if self.sign == Token.PLUS else "-"
+            s += self.factor_first.__str__(verbose=verbose)
+        else:
+            s = f"{tokens_str[self.sign]} {self.factor_first.__str__(verbose=verbose)}"
+        for op, factor in zip(self.operations, self.factors):
+            s += f" {tokens_str[op]} {factor.__str__(verbose=verbose)}"
         return s.replace('\n', ';')
 
     def __repr__(self) -> 'str':
@@ -358,9 +375,13 @@ class Expr:
     # def __rtruediv__(self, other):
     #     return self._do_op(Token.DIV, other, reverse=True)
 
-    def __str__(self):
-        s = ' '.join(f"{t}" for t in self.terms)
-        return f"EXPR({s})"
+    def __str__(self, verbose: 'bool' = False):
+        if len(self.terms) == 0:
+            return "()"
+        s = self.terms[0].__str__(first_term=True, verbose=verbose)
+        if len(self.terms) > 1:
+            s += ' ' + ' '.join(f"{t.__str__(first_term=False, verbose=verbose)}" for t in self.terms[1:])
+        return f"({s})"
 
     def __repr__(self) -> str:
         return self.__str__()

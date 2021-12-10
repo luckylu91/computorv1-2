@@ -126,7 +126,7 @@ class Poly:
                     print(f"{Poly.float_str(abs(imag))} * i")
                     print(f"-{Poly.float_str(abs(imag))} * i")
 
-    def __str__(self):
+    def __str__(self, variable_name = "x"):
         if len(self.d) == 0:
             return "0"
         strs = []
@@ -137,7 +137,7 @@ class Poly:
             if i >= 1:
                 # if v != 1:
                 #     s += "*"
-                s += "x"
+                s += variable_name
                 if i >=2:
                     s += "^" + str(i)
             strs.append(s)

@@ -106,7 +106,7 @@ class Parser:
         self.eat(Token.LPAR)
         tok = self.current_token
         if tok.type == Token.LITERAL:
-            arg = self.literal(matrix_allowed=False)
+            arg = self.expr(matrix_allowed=True)
             # if is_variable(tok.value) and self.is_fun_definition and tok.value == self.function_variable:
             #     raise RecursiveFunctionDefinitonError()
             # else:
@@ -226,7 +226,7 @@ class Parser:
     def unknown_variables(self):
         res = {vp for vp in self.variables_present
                 if vp not in self.context}
-        if self.is_fun_definition:
+        if self.is_fun_definition and self.function_variable in res:
             res.remove(self.function_variable)
         return res
 

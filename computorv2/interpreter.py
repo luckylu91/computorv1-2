@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import argparse
 from lib.interpreting import interpret
 from lib.blocks.math_types import Complex
 from lib.utils.python_types import Context
@@ -19,16 +20,21 @@ def try_interpret(line: 'str', context: 'Context', debug: 'bool' = False):
         print(e)
     print()
 
+argparser = argparse.ArgumentParser()
+argparser.add_argument("-d", "--debug", help="print context after each action", action="store_true")
+argparser.add_argument('file_name', nargs='?', default=None)
+args = argparser.parse_args()
+
 context = {'i': Complex.i()}
 
-if len(sys.argv) >= 2:
-    fname = sys.argv[1]
+if args.file_name is not None:
+    fname = args.file_name
     print(f"Interpreting file {fname}")
     with open(fname) as f:
         for line in f.readlines():
             print("> " + line)
-            try_interpret(line, context)
+            try_interpret(line, context, args.debug)
 else:
     while True:
         line = input('> ')
-        try_interpret(line, context)
+        try_interpret(line, context, args.debug)
