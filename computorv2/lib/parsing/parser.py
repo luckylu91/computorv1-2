@@ -1,4 +1,4 @@
-from typing import Iterable, Union, List
+from typing import Iterable, Union, List, Tuple
 from .tokenizing import Token, Lexer, is_variable, is_number
 from ..blocks.expressions import Literal, Term, Expr
 from ..blocks.math_types import Rational, Matrix
@@ -29,12 +29,15 @@ def rational_from_str(tok: 'str') -> 'Rational':
 
 class Parser:
 
-    def __init__(self, lexer: 'Lexer', context: 'Context' = dict(), function_variables: 'set[str]' = set()):
+    def __init__(self, lexer: 'Lexer', context: 'Context' = dict(), function_definition: 'Tuple[str, str]' = None):
         self.lexer: Lexer = lexer
         self.current_token: Token = lexer.next_token()
         self.variables_present = set()
         self.context = context
-        self.function_variables = function_variables
+        self.is_fun_definition = function_definition is not None
+        if self.is_fun_definition:
+            self.function_name = function_definition[0]
+            self.function_variable = function_definition[1]
 
     def eat(self, token_type: 'Union[str, Iterable[str]]' = None) -> 'Token':
         tok = self.current_token
@@ -85,7 +88,7 @@ class Parser:
             type = Literal.NUMBER
             value = rational_from_str(tok.value)
         elif is_variable(tok.value):
-            if tok.value in self.function_variables:
+            if self.is_fun_definition and tok.value == self.function_variable:
                 type = Literal.FUN_VARIABLE
             else:
                 type = Literal.VARIABLE
@@ -95,15 +98,19 @@ class Parser:
             raise Exception("Invalid use of Parse._token_to_unit_litteral")
         return Literal(type, value)
 
+    # ---->
     def function(self) -> 'Literal':
         fname = self.eat(Token.LITERAL).value
+        #
+
         self.eat(Token.LPAR)
         tok = self.current_token
         if tok.type == Token.LITERAL:
-            if is_variable(tok.value) and tok.value in self.function_variables:
-                raise RecursiveFunctionDefinitonError()
-            else:
-                arg = self.unit_literal()
+            arg = self.literal(matrix_allowed=False)
+            # if is_variable(tok.value) and self.is_fun_definition and tok.value == self.function_variable:
+            #     raise RecursiveFunctionDefinitonError()
+            # else:
+            #     arg = self.unit_literal()
         elif tok.type == Token.LBRACK:
             arg = self.matrix()
         else:
@@ -217,9 +224,11 @@ class Parser:
         self.eat(Token.EOF)
 
     def unknown_variables(self):
-        return {
-            vp for vp in self.variables_present
-                if vp not in self.context and vp not in self.function_variables}
+        res = {vp for vp in self.variables_present
+                if vp not in self.context}
+        if self.is_fun_definition:
+            res.remove(self.function_variable)
+        return res
 
     def check_unknown_variables(self):
         unknown_variables = self.unknown_variables()
