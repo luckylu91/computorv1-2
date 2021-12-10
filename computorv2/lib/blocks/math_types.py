@@ -27,6 +27,7 @@ def power(scalar: 'Scalar', exponent: 'int', one: 'Scalar') -> 'Scalar':
         res = operation(res, scalar)
     return res
 
+
 @functools.total_ordering
 class Rational:
     def __init__(self, num: 'int', denum: 'int' = 1):

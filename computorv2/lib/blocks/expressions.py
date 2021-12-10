@@ -12,10 +12,10 @@ from ..utils.errors import UnknownFunctionError, InvalidMatMultUseError, \
 def matmult(m1: 'Matrix', m2: 'Matrix') -> Matrix:
     if not isinstance(m1, Matrix) or not isinstance(m2, Matrix):
         raise InvalidMatMultUseError(m1, m2)
+    return Matrix.matmult(m1, m2)
 
 
-def do_op(op: 'str', l1: 'Literal', l2: 'Literal') -> 'Value':
-    # print(f"do_op({op}, {l1}: {type(l1).__name__}, {l2}: {type(l2).__name__})")
+def do_op(op: 'str', l1, l2) -> 'Value':
     if l1 is None:
         return l2
     elif l2 is None:
@@ -152,14 +152,12 @@ class Term:
         return res
 
     def evaluate(self, context: 'Context') -> 'Value':
-        scalar_term = self.mapped_term(lambda factor: factor.evaluate(context)) #
-        f = lambda l1, l2: do_op(Token.POW, l1, l2) #
-        scalar_term.do_one_operation(Token.POW, binary_fun=f) #
-        # res = self.factor_first.evaluate(context)
-        # fs = [f.evaluate(context) for f in self.factors]
+        scalar_term = self.mapped_term(lambda factor: factor.evaluate(context))
+        f = lambda l1, l2: do_op(Token.POW, l1, l2)
+        scalar_term.do_one_operation(Token.POW, binary_fun=f)
         res = scalar_term.factor_first
-        for op, f in zip(self.operations, scalar_term.factors):
-            res = do_op(op, res, f)
+        for op, factor in zip(self.operations, scalar_term.factors):
+            res = do_op(op, res, factor)
         return self._apply_sign_to_result(res)
 
     def contains_variables(self) -> 'bool':
@@ -224,9 +222,9 @@ class Term:
             return factor.to_polynomial()
 
     def to_polynomial(self):
-        poly_term = self.mapped_term(lambda factor: Term._to_polynomial(factor)) #
-        f = lambda l1, l2: do_op(Token.POW, l1, l2) #
-        poly_term.do_one_operation(Token.POW, binary_fun=f) #
+        poly_term = self.mapped_term(lambda factor: Term._to_polynomial(factor))
+        f = lambda l1, l2: do_op(Token.POW, l1, l2)
+        poly_term.do_one_operation(Token.POW, binary_fun=f)
         res = poly_term.factor_first
         for op, f in zip(self.operations, poly_term.factors):
             res = do_op(op, res, f)
@@ -266,7 +264,7 @@ class Term:
         s = f"{tokens_str[self.sign]} {self.factor_first}"
         for op, f in zip(self.operations, self.factors):
             s += f" {tokens_str[op]} {f}"
-        return s
+        return s.replace('\n', ';')
 
     def __repr__(self) -> 'str':
         return self.__str__()
