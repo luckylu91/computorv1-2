@@ -8,6 +8,8 @@ def _insert_sorted(coef_list, coef, power):
 
 def _expression_to_coef_list(expr):
 	expr = expr.strip()
+	if expr == '':
+		raise SyntaxError("At least one side is empty")
 	if expr == '0':
 		return []
 	coef_list = []
@@ -19,14 +21,17 @@ def _expression_to_coef_list(expr):
 	return coef_list
 
 def equation_to_coef_list(equation):
+	equation = equation.strip()
+	if equation == '':
+		raise SyntaxError("Empty equation")
 	splitted = equation.split('=')
 	if len(splitted) != 2:
-		return None
+		raise SyntaxError("Too many '='")
 	lhs, rhs = splitted
 	poly1 = _expression_to_coef_list(lhs)
 	poly2 = _expression_to_coef_list(rhs)
 	if poly1 == None or poly2 == None:
-		return None
+		raise SyntaxError("")
 	if len(poly2) > len(poly1):
 		poly1.extend(0 for _ in range(len(poly1), len(poly2) + 1))
 	for i, c in enumerate(poly2):

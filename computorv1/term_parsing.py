@@ -8,7 +8,7 @@ def _extract_sign(expr, term_index):
 	sign_pattern = r'[+-]?' if (term_index == 0) else r'[+-]'
 	m = re.match(sign_pattern, expr)
 	if m == None:
-		raise SyntaxError("Missing sign before a term")
+		raise SyntaxError(f"Unexpected token: {expr[0]}")
 	sign = m.group(0)
 	expr = expr[m.end(0):].lstrip()
 	return expr, sign
